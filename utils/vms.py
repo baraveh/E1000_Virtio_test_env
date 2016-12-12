@@ -1,6 +1,9 @@
 import logging
 import os
 from utils.shell_utils import run_command_output, run_command_check, run_command_remote, run_command_async
+from time import sleep
+from tempfile import NamedTemporaryFile
+import signal
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -49,6 +52,7 @@ class Qemu(VM):
 
         # auto config
         self.tap_device = ''
+        self.pidfile = NamedTemporaryFile()
 
     def create_tun(self):
         """
@@ -92,10 +96,10 @@ class Qemu(VM):
             sidecore_param = ""
 
         qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m 4096 "\
-                       "-drive_file={disk},if=none,id=drive-virtio-disk0,format=qcow2 "\
+                       "-drive_file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 "\
                        "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 "\
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} "\
-                       "-device {dev_type},netdev=net0,mac={mac} "\
+                       "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile}"\
                        "-vnc :{vnc}".format(
                             cpu=self.cpu_to_pin,
                             qemu_exe=self.QEMU_EXE,
@@ -104,9 +108,20 @@ class Qemu(VM):
                             tap=self.tap_device,
                             vhost=vhost_param,
                             dev_type=self.ethernet_dev,
+                            pidfile=self.pidfile.name,
                             vnc=self.vnc_number
                        )
         run_command_async(qemu_command)
+        sleep(self.BOOTUP_WAIT)
+
+    def change_qemu_parameters(self, configs):
+        # TODO: set parameters
+        self.signal_qemu()
+
+    def signal_qemu(self):
+        self.pidfile.seek(0)
+        pid = int(self.pidfile.read().strip())
+        os.kill(pid, signal.SIGUSR1)
 
 
 class VMware(VM):
