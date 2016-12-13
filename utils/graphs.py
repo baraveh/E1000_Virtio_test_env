@@ -24,7 +24,10 @@ class Graph:
         if x not in self.data:
             self.data[x] = dict()
 
-        self.data[x][title] = value
+        if title not in self.data[x]:
+            self.data[x][title] = value
+        else:
+            self.data[x][title] += value
 
     def set_x_tics(self, values, labels):
         assert(len(values) == len(labels))
@@ -35,7 +38,7 @@ class Graph:
 
         self.x_tics += ")"
 
-    def create_graph(self):
+    def create_graph(self, retries):
         """
         write data to file
         run gnuplot
@@ -44,10 +47,12 @@ class Graph:
             f.write("title ")
             for title in self.titles:
                 f.write("{} ".format(title))
+            f.write("\n")
             for x in self.data:
                 f.write("{} ".format(x))
                 for title in self.titles:
-                    f.write("{} ".format(self.data[x][title]))
+                    f.write("{} ".format(float(self.data[x][title])) / float(retries))
+            f.write("\n")
 
         command = "gnuplot -e '" \
                   "output_filename='{output}; " \
