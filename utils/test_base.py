@@ -17,13 +17,13 @@ class TestBase:
     def test_func(self, vm: VM, vm_name: str, msg_size: int, retry: int):
         raise NotImplementedError()
 
-    def get_vms(self) -> list[(VM, str)]:
+    def get_vms(self): # -> list[(VM, str)]:
         raise NotImplementedError()
 
-    def get_sensors(self)-> list[Sensor]:
+    def get_sensors(self): # -> list[Sensor]:
         raise NotImplementedError()
 
-    def get_msg_sizes(self)-> list[(int, str)]:
+    def get_msg_sizes(self): # -> list[(int, str)]:
         raise NotImplementedError()
 
     def pre_run(self):
