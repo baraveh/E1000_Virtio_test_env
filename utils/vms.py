@@ -79,12 +79,17 @@ class Qemu(VM):
         run_command_check("sudo modprobe -r kvm-intel")
 
     def setup(self):
-        self.load_kvm()
+        #self.load_kvm()
         self.create_tun()
 
+    def shutdown(self):
+        self.remote_command("poweroff")
+        sleep(2)
+
     def teardown(self):
+        self.shutdown()
         self.delete_tun()
-        self.unload_kvm()
+        #self.unload_kvm()
 
     def run(self):
         if self.vhost:
@@ -98,11 +103,11 @@ class Qemu(VM):
             sidecore_param = ""
 
         qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m 4096 "\
-                       "-drive_file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 "\
+                       "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 "\
                        "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 "\
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} "\
-                       "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile}"\
-                       "-vnc :{vnc}".format(
+                       "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile} "\
+                       "-vnc :{vnc} ".format(
                             cpu=self.cpu_to_pin,
                             qemu_exe=self.QEMU_EXE,
                             sidecore=sidecore_param,
@@ -110,6 +115,7 @@ class Qemu(VM):
                             tap=self.tap_device,
                             vhost=vhost_param,
                             dev_type=self.ethernet_dev,
+                            mac=self.mac_address,
                             pidfile=self.pidfile.name,
                             vnc=self.vnc_number
                        )

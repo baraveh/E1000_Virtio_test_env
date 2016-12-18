@@ -25,16 +25,16 @@ class Graph:
             self.data[x] = dict()
 
         if title not in self.data[x]:
-            self.data[x][title] = value
+            self.data[x][title] = float(value)
         else:
-            self.data[x][title] += value
+            self.data[x][title] += float(value)
 
     def set_x_tics(self, values, labels):
         assert(len(values) == len(labels))
 
         self.x_tics = "("
         for label, value in zip(values, labels):
-            self.x_tics += r'\"{}\"{},'.format(label, value)
+            self.x_tics += r'\\"{}\\"{},'.format(label, value)
 
         self.x_tics += ")"
 
@@ -51,16 +51,17 @@ class Graph:
             for x in self.data:
                 f.write("{} ".format(x))
                 for title in self.titles:
-                    f.write("{} ".format(float(self.data[x][title])) / float(retries))
+                    f.write("{} ".format(float(self.data[x][title]) / float(retries)))
             f.write("\n")
 
-        command = "gnuplot -e '" \
-                  "output_filename='{output}; " \
+        command = "gnuplot -e \"" \
+                  "output_filename='{output}'; " \
                   "data_filename='{data}'; " \
+                  "data_filename2=''; " \
                   "y_label='{y_label}'; " \
                   "x_label='{x_label}'; " \
                   "x_tics='{x_tics}'; " \
-                  "'".format(
+                  "".format(
                         output=self.output_filename,
                         data=self.data_filename,
                         y_label=self.y_label,
@@ -71,4 +72,5 @@ class Graph:
         if self.log_scale_x > 0:
             command += "log_scale_x='{log}'; ".format(log=self.log_scale_x)
 
+        command += "\""
         run_command_check(command)

@@ -4,6 +4,7 @@ import logging
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class TestBase:
     def __init__(self, retries: int):
@@ -39,11 +40,11 @@ class TestBase:
 
             for msg_size, msg_size_name in self._msg_sizes:
                 for i in range(self._retries):
-                    for sensor, _ in self._sensors:
+                    for sensor in self._sensors:
                         sensor.test_before(vm)
 
                     logger.info("Runing vm=%s, msg size=%s", vm_name, msg_size_name)
-                    self.test_func(vm, msg_size, i)
+                    self.test_func(vm, vm_name, msg_size, i)
 
                     for sensor in self._sensors:
                         sensor.test_after(vm, vm_name, msg_size)

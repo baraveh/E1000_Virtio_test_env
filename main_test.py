@@ -3,6 +3,7 @@ from utils.vms import Qemu, VM
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
 
+Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64" 
 
 class MainTest(TestBase):
     def __init__(self, *args, **kargs):
@@ -12,7 +13,7 @@ class MainTest(TestBase):
         return [(65160, "65K")]
 
     def get_sensors(self):
-        self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput.pdf", r"/tmp/throughput.txt")
+        self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput", r"/tmp/throughput.txt")
         self.netperf = NetPerfTCP(self.netperf_graph)
         return [self.netperf]
 
