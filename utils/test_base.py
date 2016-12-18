@@ -1,6 +1,9 @@
 from utils.vms import VM
 from utils.sensors import Sensor
+import logging
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 class TestBase:
     def __init__(self, retries: int):
@@ -11,7 +14,7 @@ class TestBase:
 
         self._msg_sizes = self.get_msg_sizes()
 
-    def test_func(self, vm: VM, msg_size: int, retry: int):
+    def test_func(self, vm: VM, vm_name: str, msg_size: int, retry: int):
         raise NotImplementedError()
 
     def get_vms(self) -> list[(VM, str)]:
@@ -39,6 +42,7 @@ class TestBase:
                     for sensor, _ in self._sensors:
                         sensor.test_before(vm)
 
+                    logger.info("Runing vm=%s, msg size=%s", vm_name, msg_size_name)
                     self.test_func(vm, msg_size, i)
 
                     for sensor in self._sensors:

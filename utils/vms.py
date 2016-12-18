@@ -32,11 +32,13 @@ class VM:
         raise NotImplementedError()
 
     def remote_command(self, command):
-        run_command_remote(self.ip_guest, self.USER, command)
+        return run_command_remote(self.ip_guest, self.USER, command)
 
 
 class Qemu(VM):
     QEMU_EXE = ""
+    QEMU_E1000 = "e1000"
+    QEMU_VIRTIO = "virtio-net-pci"
 
     def __init__(self, disk_path, guest_ip, host_ip, cpu_num = "1", cpu_to_pin = "2"):
         super(Qemu, self).__init__(self, disk_path, guest_ip, host_ip)
@@ -46,7 +48,7 @@ class Qemu(VM):
         self.mac_address = "52:54:00:a0:e5:1c"
         self.vnc_number = "10"
 
-        self.ethernet_dev = "e1000" # can be
+        self.ethernet_dev = "e1000" # can be "virtio-net-pci" or "e1000"
         self.vhost = False
         self.sidecore = False
 

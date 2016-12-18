@@ -24,7 +24,7 @@ def run_command_output(command_string, shell=False):
 
 def run_command_remote(servername, user, command):
     full_command = "ssh {name}@{user} {command}".format(name=servername, user=user, command=command)
-    return run_command(full_command)
+    return run_command_output(full_command)
 
 
 def run_command_async(command, output_file=None):
