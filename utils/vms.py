@@ -41,7 +41,7 @@ class Qemu(VM):
     QEMU_VIRTIO = "virtio-net-pci"
 
     def __init__(self, disk_path, guest_ip, host_ip, cpu_num = "1", cpu_to_pin = "2"):
-        super(Qemu, self).__init__(self, disk_path, guest_ip, host_ip)
+        super(Qemu, self).__init__(disk_path, guest_ip, host_ip)
 
         self.cpu_to_pin = cpu_to_pin
         # self.cpu_num = cpu_num
