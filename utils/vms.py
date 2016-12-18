@@ -73,10 +73,10 @@ class Qemu(VM):
         run_command_check("sudo tunctl -d {tap}".format(tap=self.tap_device))
 
     def load_kvm(self):
-        run_command_check("sudo modprobe intel_kvm")
+        run_command_check("sudo modprobe kvm-intel")
 
     def unload_kvm(self):
-        run_command_check("sudo modprobe -r intel_kvm")
+        run_command_check("sudo modprobe -r kvm-intel")
 
     def setup(self):
         self.load_kvm()
