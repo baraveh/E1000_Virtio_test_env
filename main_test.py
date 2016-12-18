@@ -13,7 +13,7 @@ class MainTest(TestBase):
 
     def get_sensors(self):
         self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput.pdf", r"/tmp/throughput.txt")
-        self.netperf = NetPerfTCP()
+        self.netperf = NetPerfTCP(self.netperf_graph)
         return [self.netperf]
 
     def get_vms(self):
