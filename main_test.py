@@ -7,7 +7,7 @@ from utils.graphs import Graph
 class MainTest(TestBase):
     def __init__(self, *args, **kargs):
         super(MainTest, self).__init__(*args, **kargs)
-        self.netperf_graph =
+        self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput.pdf", r"/tmp/throughput.txt")
         self.netperf = NetPerfTCP()
 
         self.qemu_virtio = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
