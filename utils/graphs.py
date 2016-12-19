@@ -7,7 +7,7 @@ class Graph:
         self.x_label = x_label
         self.y_label = y_label
         self.x_tics = ''
-        self.log_scale_x = -1
+        self.log_scale_x = 2
 
         self.output_filename = output_filename
         self.data_filename = data_filename
@@ -50,7 +50,7 @@ class Graph:
             for title in self.titles:
                 f.write("{} ".format(title))
             f.write("\n")
-            for x in self.data:
+            for x in sorted(self.data):
                 f.write("{} ".format(x))
                 for title in self.titles:
                     f.write("{} ".format(float(self.data[x][title]) / float(retries)))

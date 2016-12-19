@@ -15,6 +15,15 @@ class Sensor:
     def test_after(self, vm: VM, title, x):
         raise NotImplementedError()
 
+    def set_column_names(self, titles):
+        self.graph.set_column_names(titles)
+
+    def set_x_tics(self, labels, values):
+        self.graph.set_x_tics(labels=labels, values=values)
+
+    def create_graph(self, retries):
+        self.graph.create_graph(retries)
+
 
 class SensorBeforeAfter(Sensor):
     def __init__(self, *args, **kargs):

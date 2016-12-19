@@ -29,9 +29,9 @@ class TestBase:
 
     def pre_run(self):
         for sensor in self._sensors:
-            sensor.graph.set_column_names([vm_name for _, vm_name in self._vms])
-            sensor.graph.set_x_tics(labels=[size_name for _, size_name in self._msg_sizes],
-                                    values=[size for size, _ in self._msg_sizes])
+            sensor.set_column_names([vm_name for _, vm_name in self._vms])
+            sensor.set_x_tics(labels=[size_name for _, size_name in self._msg_sizes],
+                              values=[size for size, _ in self._msg_sizes])
 
     def run(self):
         for vm, vm_name in self._vms:
@@ -53,4 +53,4 @@ class TestBase:
 
     def post_run(self):
         for sensor in self._sensors:
-            sensor.graph.create_graph(self._retries)
+            sensor.create_graph(self._retries)

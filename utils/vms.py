@@ -1,8 +1,8 @@
 import logging
 import os
-from utils.shell_utils import run_command_output, run_command_check, run_command_remote, run_command_async
+from utils.shell_utils import run_command_output, run_command_check, run_command_remote, run_command_async, run_command
 from time import sleep
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mktemp
 import signal
 
 logging.basicConfig()
@@ -27,9 +27,16 @@ class VM:
         logger.info("Teardown VM: %s", self)
         raise NotImplementedError()
 
+    def _run(self):
+        raise NotImplementedError()
+
+    def _configure_guest(self):
+        pass
+
     def run(self):
         logger.info("Running VM: %s", self)
-        raise NotImplementedError()
+        self._run()
+        self._configure_guest()
 
     def remote_command(self, command):
         return run_command_remote(self.ip_guest, self.USER, command)
@@ -37,6 +44,9 @@ class VM:
 
 class Qemu(VM):
     QEMU_EXE = ""
+
+    QEMU_E1000_DEBUG_PARAMETERS_FILE = "/tmp/e1000_debug_parameters"
+
     QEMU_E1000 = "e1000"
     QEMU_VIRTIO = "virtio-net-pci"
 
@@ -56,6 +66,8 @@ class Qemu(VM):
         # auto config
         self.tap_device = ''
         self.pidfile = NamedTemporaryFile()
+
+        self.qemu_config = dict()
 
     def create_tun(self):
         """
@@ -82,6 +94,7 @@ class Qemu(VM):
     def setup(self):
         #self.load_kvm()
         self.create_tun()
+        self._configure_host()
 
     def shutdown(self):
         self.remote_command("poweroff")
@@ -89,10 +102,11 @@ class Qemu(VM):
 
     def teardown(self):
         self.shutdown()
+        self._reset_host_configuration()
         self.delete_tun()
         #self.unload_kvm()
 
-    def run(self):
+    def _run(self):
         if self.vhost:
             vhost_param = ",vhost=on"
         else:
@@ -122,23 +136,61 @@ class Qemu(VM):
                             mem=self.mem,
                        )
         run_command_async(qemu_command)
+        if self.qemu_config:
+            sleep(1)
+            self.change_qemu_parameters()
         sleep(self.BOOTUP_WAIT)
 
-    def change_qemu_parameters(self, configs):
-        # TODO: set parameters
-        self.signal_qemu()
+    def change_qemu_parameters(self, config=None):
+        if config:
+            self.qemu_config.update(config)
 
-    def signal_qemu(self):
-        self.pidfile.seek(0)
-        pid = int(self.pidfile.read().strip())
+        with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
+            for name, value in self.qemu_config.items():
+                f.write("{} {}\n".format(name, value))
+        self._signal_qemu()
+
+    def _signal_qemu(self):
+        with open(self.pidfile.name, "r") as f:
+            pid = int(f.read().strip())
         os.kill(pid, signal.SIGUSR1)
 
+    def _configure_guest(self):
+        pass
+
+    def _configure_host(self):
+        pass
+
+    def _reset_host_configuration(self):
+        pass
+
+
+class QemuE1000Max(Qemu):
+    def __init__(self, *args, **kargs):
+        super(QemuE1000Max, self).__init__(*args, **kargs)
+        self.qemu_config = {
+            "no_tso_loop_on": 1,
+            "no_tcp_csum_on": 1,
+            "zero_copy_on": 1,
+            "tdt_handle_on_iothread": 1,
+            "interrupt_mitigation_multiplier":10
+        }
+        self.ethernet_dev = self.QEMU_E1000
+
+    def _configure_host(self):
+        run_command_check("echo 1 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
+
+    def _reset_host_configuration(self):
+        run_command_check("echo 0 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
+
+    def _configure_guest(self):
+        self.remote_command("echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on")
 
 class VMware(VM):
     def setup(self):
         pass
 
-    def run(self):
+    def _run(self):
         pass
 
     def teardown(self):

@@ -13,7 +13,11 @@ def run_command(command_string, shell=False):
 
 def run_command_check(command_string, shell=False):
     logger.debug("Run command (checked): %s", command_string)
-    return subprocess.check_call(shlex.split(command_string), shell=shell)
+    if not shell:
+        cmd = shlex.split(command_string)
+    else:
+        cmd = command_string
+    return subprocess.check_call(cmd, shell=shell)
 
 
 def run_command_output(command_string, shell=False):
@@ -24,7 +28,7 @@ def run_command_output(command_string, shell=False):
 
 
 def run_command_remote(servername, user, command):
-    full_command = "ssh {user}@{host} {command}".format(host=servername, user=user, command=command)
+    full_command = 'ssh {user}@{host} "{command}"'.format(host=servername, user=user, command=command)
     return run_command_output(full_command)
 
 
