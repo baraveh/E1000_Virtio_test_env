@@ -12,7 +12,7 @@ class Graph:
         self.output_filename = output_filename
         self.data_filename = data_filename
         self.data_filename2 = ""
-        self.script_filename = ""
+        self.script_filename = "gnuplot/plot_lines_message_size_ticks"
 
         self.data = dict()
 
@@ -54,6 +54,10 @@ class Graph:
                     f.write("{} ".format(float(self.data[x][title]) / float(retries)))
                 f.write("\n")
 
+        addition = ""
+        if self.log_scale_x > 0:
+            addition = "log_scale_x='{log}'; ".format(log=self.log_scale_x)
+
         command = "gnuplot -e \"" \
                   "output_filename='{output}'; " \
                   "data_filename='{data}'; " \
@@ -61,16 +65,18 @@ class Graph:
                   "y_label='{y_label}'; " \
                   "x_label='{x_label}'; " \
                   "x_tics='{x_tics}'; " \
+                  "{addition}" \
+                  "{script}" \
                   "".format(
                         output=self.output_filename,
                         data=self.data_filename,
                         y_label=self.y_label,
                         x_label=self.x_label,
                         x_tics=self.x_tics,
+                        addition=addition,
+                        script=self.script_filename
                   )
 
-        if self.log_scale_x > 0:
-            command += "log_scale_x='{log}'; ".format(log=self.log_scale_x)
 
         command += "\""
         run_command_check(command)

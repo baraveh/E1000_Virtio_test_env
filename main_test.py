@@ -15,7 +15,7 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
-        self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput", r"/tmp/throughput.txt")
+        self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput.pdf", r"/tmp/throughput.txt")
         self.netperf = NetPerfTCP(self.netperf_graph)
         return [self.netperf]
 
@@ -29,26 +29,23 @@ class MainTest(TestBase):
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
         self.qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
-    
 
-        self.qemu_virtio2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
-                                guest_ip="10.10.0.43",
-                                host_ip="10.10.0.44")
-        self.qemu_virtio2.ethernet_dev = Qemu.QEMU_VIRTIO
-        self.qemu_virtio2.mem=1024
+        self.qemu_virtio_1g = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                                   guest_ip="10.10.0.43",
+                                   host_ip="10.10.0.44")
+        self.qemu_virtio_1g.ethernet_dev = Qemu.QEMU_VIRTIO
+        self.qemu_virtio_1g.mem=1024
 
-        self.qemu_e1000_2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
-                                guest_ip="10.10.0.43",
-                                host_ip="10.10.0.44")
-        self.qemu_e1000_2.ethernet_dev = Qemu.QEMU_E1000
-        self.qemu_e1000_2.mem=1024
-    
+        self.qemu_e1000_1g = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                                  guest_ip="10.10.0.43",
+                                  host_ip="10.10.0.44")
+        self.qemu_e1000_1g.ethernet_dev = Qemu.QEMU_E1000
+        self.qemu_e1000_1g.mem=1024
 
-
-        return [(self.qemu_virtio, "qemu_virtio"), 
-                (self.qemu_e1000, "qemu_e1000"),
-                (self.qemu_virtio2, "qemu virtio 2"),
-                (self.qemu_e1000_2, "qemu e1000 2"),
+        return [(self.qemu_virtio, "qemu_virtio_4G"),
+                (self.qemu_e1000, "qemu_e1000_4G"),
+                (self.qemu_virtio_1g, "qemu_virtio_1G"),
+                (self.qemu_e1000_1g, "qemu_e1000_1G"),
                 ]
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int, retry: int):

@@ -4,9 +4,9 @@ from utils.graphs import Graph
 
 
 class NetPerf(Sensor):
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: Graph, runtime=10):
         super(NetPerf, self).__init__(graph)
-        self.runtime = 10
+        self.runtime = runtime
         self.test = ""
 
     def test_params(self, *args, **kargs):
