@@ -40,3 +40,4 @@ class NetPerfTCP(NetPerf):
 
     def test_params(self, msg_size):
         return " -- -m {}".format(msg_size)
+

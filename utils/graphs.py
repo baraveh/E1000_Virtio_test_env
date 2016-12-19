@@ -52,7 +52,7 @@ class Graph:
                 f.write("{} ".format(x))
                 for title in self.titles:
                     f.write("{} ".format(float(self.data[x][title]) / float(retries)))
-            f.write("\n")
+                f.write("\n")
 
         command = "gnuplot -e \"" \
                   "output_filename='{output}'; " \
