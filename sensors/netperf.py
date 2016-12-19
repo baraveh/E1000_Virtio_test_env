@@ -34,8 +34,8 @@ class NetPerf(Sensor):
 
 
 class NetPerfTCP(NetPerf):
-    def __init__(self, graph: Graph):
-        super(NetPerfTCP, self).__init__(graph)
+    def __init__(self, *args, **kargs):
+        super(NetPerfTCP, self).__init__(*args, **kargs)
         self.test = "TCP_STREAM"
 
     def test_params(self, msg_size):
