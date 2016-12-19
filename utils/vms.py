@@ -51,6 +51,7 @@ class Qemu(VM):
         self.ethernet_dev = "e1000" # can be "virtio-net-pci" or "e1000"
         self.vhost = False
         self.sidecore = False
+        self.mem = "4096"
 
         # auto config
         self.tap_device = ''
@@ -102,7 +103,7 @@ class Qemu(VM):
         else:
             sidecore_param = ""
 
-        qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m 4096 "\
+        qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} "\
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 "\
                        "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 "\
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} "\
@@ -117,7 +118,8 @@ class Qemu(VM):
                             dev_type=self.ethernet_dev,
                             mac=self.mac_address,
                             pidfile=self.pidfile.name,
-                            vnc=self.vnc_number
+                            vnc=self.vnc_number,
+                            mem=self.mem,
                        )
         run_command_async(qemu_command)
         sleep(self.BOOTUP_WAIT)

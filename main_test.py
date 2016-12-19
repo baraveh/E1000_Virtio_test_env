@@ -10,7 +10,9 @@ class MainTest(TestBase):
         super(MainTest, self).__init__(*args, **kargs)
 
     def get_msg_sizes(self):
-        return [(65160, "65K"), (32580, "32K")]
+        return [(65160, "65K"), 
+                #(32580, "32K")
+                ]
 
     def get_sensors(self):
         self.netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput", r"/tmp/throughput.txt")
@@ -29,8 +31,25 @@ class MainTest(TestBase):
         self.qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
     
 
+        self.qemu_virtio2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                                guest_ip="10.10.0.43",
+                                host_ip="10.10.0.44")
+        self.qemu_virtio2.ethernet_dev = Qemu.QEMU_VIRTIO
+        self.qemu_virtio2.mem=1024
+
+        self.qemu_e1000_2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                                guest_ip="10.10.0.43",
+                                host_ip="10.10.0.44")
+        self.qemu_e1000_2.ethernet_dev = Qemu.QEMU_E1000
+        self.qemu_e1000_2.mem=1024
+    
+
+
         return [(self.qemu_virtio, "qemu_virtio"), 
-                (self.qemu_e1000, "qemu_e1000")]
+                (self.qemu_e1000, "qemu_e1000"),
+                (self.qemu_virtio2, "qemu virtio 2"),
+                (self.qemu_e1000_2, "qemu e1000 2"),
+                ]
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int, retry: int):
         self.netperf.run_netperf(vm, vm_name, msg_size, msg_size)
