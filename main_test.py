@@ -10,8 +10,8 @@ Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmm
 
 class MainTest(TestBase):
     def __init__(self, netperf_runtime, *args, **kargs):
-        super(MainTest, self).__init__(*args, **kargs)
         self.netperf_runtime = netperf_runtime
+        super(MainTest, self).__init__(*args, **kargs)
 
     def get_msg_sizes(self):
         return [
@@ -78,7 +78,7 @@ class MainTest(TestBase):
         self.netperf.run_netperf(vm, vm_name, msg_size, msg_size)
 
 if __name__ == "__main__":
-    test = MainTest(retries=3, netperf_runtime=60)
+    test = MainTest(60, retries=3)
     test.pre_run()
     test.run()
     test.post_run()
