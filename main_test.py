@@ -11,7 +11,7 @@ class MainTest(TestBase):
 
     def get_msg_sizes(self):
         return [(65160, "65K"), 
-                #(32580, "32K")
+                (32580, "32K"),
                 ]
 
     def get_sensors(self):

@@ -32,11 +32,13 @@ class Graph:
     def set_x_tics(self, values, labels):
         assert(len(values) == len(labels))
 
-        self.x_tics = "("
-        for label, value in zip(values, labels):
-            self.x_tics += r'\\"{}\\"{},'.format(label, value)
+        labels_tics = [] 
+        for label, value in zip(labels, values):
+            labels_tics.append(r'\"{}\"{}'.format(label, value))
 
-        self.x_tics += ")"
+        #self.x_tics = "("
+        #self.x_tics += ")"
+        self.x_tics = "({})".format(",".join(labels_tics))
 
     def create_graph(self, retries):
         """
@@ -66,6 +68,7 @@ class Graph:
                   "x_label='{x_label}'; " \
                   "x_tics='{x_tics}'; " \
                   "{addition}" \
+                  "\" " \
                   "{script}" \
                   "".format(
                         output=self.output_filename,
@@ -78,5 +81,4 @@ class Graph:
                   )
 
 
-        command += "\""
         run_command_check(command)
