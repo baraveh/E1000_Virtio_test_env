@@ -33,9 +33,14 @@ class VM:
     def _configure_guest(self):
         pass
 
+    def shutdown(self):
+        self.remote_command("poweroff")
+        sleep(3)
+
     def run(self):
         logger.info("Running VM: %s", self)
         self._run()
+        sleep(self.BOOTUP_WAIT)
         self._configure_guest()
 
     def remote_command(self, command):
@@ -89,16 +94,13 @@ class Qemu(VM):
         run_command_check("sudo modprobe kvm-intel")
 
     def unload_kvm(self):
+        sleep(1)
         run_command_check("sudo modprobe -r kvm-intel")
 
     def setup(self):
         #self.load_kvm()
         self.create_tun()
         self._configure_host()
-
-    def shutdown(self):
-        self.remote_command("poweroff")
-        sleep(2)
 
     def teardown(self):
         self.shutdown()
@@ -139,7 +141,6 @@ class Qemu(VM):
         if self.qemu_config:
             sleep(1)
             self.change_qemu_parameters()
-        sleep(self.BOOTUP_WAIT)
 
     def change_qemu_parameters(self, config=None):
         if config:
@@ -186,13 +187,21 @@ class QemuE1000Max(Qemu):
     def _configure_guest(self):
         self.remote_command("echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on")
 
+
 class VMware(VM):
+    BOOTUP_WAIT = 15
+
     def setup(self):
-        pass
+        run_command_check("sudo service vmware start")
+        sleep(1)
 
     def _run(self):
-        pass
+        command = "vmrun -T ws start {} nogui".format(self.path)
+        sleep(1)
+        run_command_check(command)
 
     def teardown(self):
-        pass
+        self.shutdown()
+        run_command_check("sudo service vmware stop")
+        sleep(1)
 
