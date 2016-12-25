@@ -1,6 +1,6 @@
 from sensors.packet_num import PacketNumberSensor
 from utils.test_base import TestBase
-from utils.vms import Qemu, VM, QemuE1000Max, VMware
+from utils.vms import Qemu, VM, QemuE1000Max, VMware, VirtualBox
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
 from utils.shell_utils import run_command
@@ -30,7 +30,7 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
-        netperf_graph = Graph("msg size", "throughput", r"/tmp/vmware-throughput.pdf", r"/tmp/vmware-throughput.txt")
+        netperf_graph = Graph("msg size", "throughput", r"/tmp/virtualbox-throughput.pdf", r"/tmp/virtualbox-throughput.txt")
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
@@ -40,13 +40,11 @@ class MainTest(TestBase):
         return [self.netperf] # , packet_sensor]
 
     def get_vms(self):
-        vmware_e1000 = VMware(r"/homes/bdaviv/Shared\ VMs/Ubuntu\ Linux\ -\ e1000/Ubuntu\ Linux\ -\ e1000.vmx",
-                              "192.168.221.128", "192.168.221.1")
-        vmware_para = VMware(r"/homes/bdaviv/Shared\ VMs/Ubuntu\ Linux\ -\ paravirtual_nic/Ubuntu\ Linux\ -\ paravirtual_nic.vmx",
-                             "192.168.221.129", "192.168.221.1")
+        virtualbox_e1000 = VirtualBox(r"e1000", "192.168.56.101", "192.168.56.1")
+        virtualbox_virtio = VirtualBox(r"virtio", "192.168.56.102", "192.168.56.1")
         return [
-                (vmware_e1000, "vmware_e1000"),
-                (vmware_para, "vmware_paravirtual"),
+                (virtualbox_e1000, "virtualbox_e1000"),
+                (virtualbox_virtio, "virtualbox_virtio"),
                 ]
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int, retry: int):

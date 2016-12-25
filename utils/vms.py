@@ -12,6 +12,7 @@ logger.setLevel(logging.DEBUG)
 
 class VM:
     BOOTUP_WAIT = 10
+    POWEROFF_WAIT = 3
     USER = "user"
 
     def __init__(self, path, guest_ip, host_ip):
@@ -35,7 +36,7 @@ class VM:
 
     def shutdown(self):
         self.remote_command("poweroff")
-        sleep(3)
+        sleep(self.POWEROFF_WAIT)
 
     def run(self):
         logger.info("Running VM: %s", self)
@@ -197,7 +198,6 @@ class VMware(VM):
 
     def _run(self):
         command = "vmrun -T ws start {} nogui".format(self.path)
-        sleep(1)
         run_command_check(command)
 
     def teardown(self):
@@ -205,3 +205,22 @@ class VMware(VM):
         run_command_check("sudo service vmware stop")
         sleep(1)
 
+
+class VirtualBox(VM):
+    BOOTUP_WAIT = 30
+    POWEROFF_WAIT = 10
+
+    def setup(self):
+        run_command_check("sudo rcvboxdrv start")
+        sleep(1)
+        run_command_check("VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.56.1")
+        run_command_check("VBoxManage dhcpserver modify --ifname vboxnet0 --ip 192.168.56.100 --netmask 255.255.255.0 --lowerip 192.168.56.101 --upperip 192.168.56.150 --enable")
+
+    def teardown(self):
+        self.shutdown()
+        run_command_check("sudo rcvboxdrv stop")
+        sleep(1)
+
+    def _run(self):
+        command = "VBoxManage startvm {} --type headless".format(self.path)
+        run_command_check(command)
