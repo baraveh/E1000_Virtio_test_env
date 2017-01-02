@@ -11,7 +11,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class VM:
-    BOOTUP_WAIT = 10
+    BOOTUP_WAIT = 20
     POWEROFF_WAIT = 3
     USER = "user"
 
@@ -31,18 +31,19 @@ class VM:
     def _run(self):
         raise NotImplementedError()
 
-    def _configure_guest(self):
+    def configure_guest(self):
         pass
 
     def shutdown(self):
         self.remote_command("poweroff")
         sleep(self.POWEROFF_WAIT)
 
-    def run(self):
+    def run(self, configure_guest=True):
         logger.info("Running VM: %s", self)
         self._run()
         sleep(self.BOOTUP_WAIT)
-        self._configure_guest()
+        if configure_guest:
+            self.configure_guest()
 
     def remote_command(self, command):
         return run_command_remote(self.ip_guest, self.USER, command)
@@ -56,7 +57,7 @@ class Qemu(VM):
     QEMU_E1000 = "e1000"
     QEMU_VIRTIO = "virtio-net-pci"
 
-    def __init__(self, disk_path, guest_ip, host_ip, cpu_num = "1", cpu_to_pin = "2"):
+    def __init__(self, disk_path, guest_ip, host_ip, cpu_to_pin = "2"):
         super(Qemu, self).__init__(disk_path, guest_ip, host_ip)
 
         self.cpu_to_pin = cpu_to_pin
@@ -68,6 +69,8 @@ class Qemu(VM):
         self.vhost = False
         self.sidecore = False
         self.mem = "4096"
+
+        self.io_thread_cpu = ""
 
         # auto config
         self.tap_device = ''
@@ -85,7 +88,8 @@ class Qemu(VM):
         self.tap_device = output.split("'")[1]
 
         run_command_check("sudo  ip link set {tap} up".format(tap=self.tap_device))
-        run_command_check("sudo ip a a {host_ip}/24 dev {tap}".format(host_ip=self.ip_host,
+        if self.ip_host:
+            run_command_check("sudo ip a a {host_ip}/24 dev {tap}".format(host_ip=self.ip_host,
                                                                       tap=self.tap_device))
 
     def delete_tun(self):
@@ -96,10 +100,10 @@ class Qemu(VM):
 
     def unload_kvm(self):
         sleep(1)
-        run_command_check("sudo modprobe -r kvm-intel")
+        run_command("sudo modprobe -r kvm-intel")
 
     def setup(self):
-        #self.load_kvm()
+        self.load_kvm()
         self.create_tun()
         self._configure_host()
 
@@ -107,7 +111,8 @@ class Qemu(VM):
         self.shutdown()
         self._reset_host_configuration()
         self.delete_tun()
-        #self.unload_kvm()
+        sleep(5)
+        self.unload_kvm()
 
     def _run(self):
         if self.vhost:
@@ -146,18 +151,25 @@ class Qemu(VM):
     def change_qemu_parameters(self, config=None):
         if config:
             self.qemu_config.update(config)
+        if self.io_thread_cpu:
+            command = "taskset -p -c {} {}".format(self.io_thread_cpu, self._get_pid())
+            run_command_check(command)
 
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():
                 f.write("{} {}\n".format(name, value))
         self._signal_qemu()
 
-    def _signal_qemu(self):
+    def _get_pid(self):
         with open(self.pidfile.name, "r") as f:
-            pid = int(f.read().strip())
+            pid =  int(f.read().strip())
+        return pid
+
+    def _signal_qemu(self):
+        pid = self._get_pid()
         os.kill(pid, signal.SIGUSR1)
 
-    def _configure_guest(self):
+    def configure_guest(self):
         pass
 
     def _configure_host(self):
@@ -185,7 +197,7 @@ class QemuE1000Max(Qemu):
     def _reset_host_configuration(self):
         run_command_check("echo 0 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
 
-    def _configure_guest(self):
+    def configure_guest(self):
         self.remote_command("echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on")
 
 

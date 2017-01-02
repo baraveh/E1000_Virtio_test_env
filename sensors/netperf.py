@@ -12,9 +12,12 @@ class NetPerf(Sensor):
     def test_params(self, *args, **kargs):
         return ""
 
-    def run_netperf(self, vm: VM, title, x, *args, **kargs):
+    def run_netperf(self, vm: VM, title, x, remote_ip=None, *args, **kargs):
+        if not remote_ip:
+            remote_ip = vm.ip_host
+
         netperf_command = "netperf -H {ip} -l {runtime} -t {test_type} -v 0 {test_params}".format(
-            ip=vm.ip_host,
+            ip=remote_ip,
             runtime=self.runtime,
             test_type=self.test,
             test_params=self.test_params(*args, **kargs)
@@ -41,3 +44,7 @@ class NetPerfTCP(NetPerf):
     def test_params(self, msg_size):
         return " -- -m {}".format(msg_size)
 
+
+class NetPerfTCPNoDelay(NetPerfTCP):
+    def test_params(self, msg_size):
+        return " -- -m {} -D L,R".format(msg_size)

@@ -2,7 +2,7 @@ from sensors.packet_num import PacketNumberSensor
 from utils.test_base import TestBase
 from utils.vms import Qemu, VM, QemuE1000Max, VMware
 from sensors.netperf import NetPerfTCP
-from utils.graphs import Graph
+from utils.graphs import Graph, GraphMatplotlib
 from utils.shell_utils import run_command
 
 Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64" 
@@ -30,6 +30,7 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
+        # netperf_graph = Graph("msg size", "throughput", r"/tmp/vmware-throughput.pdf", r"/tmp/vmware-throughput.txt")
         netperf_graph = Graph("msg size", "throughput", r"/tmp/vmware-throughput.pdf", r"/tmp/vmware-throughput.txt")
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
@@ -49,11 +50,11 @@ class MainTest(TestBase):
                 (vmware_para, "vmware_paravirtual"),
                 ]
 
-    def test_func(self, vm: VM, vm_name: str, msg_size: int, retry: int):
+    def test_func(self, vm: VM, vm_name: str, msg_size: int):
         self.netperf.run_netperf(vm, vm_name, msg_size, msg_size)
 
 if __name__ == "__main__":
-    test = MainTest(netperf_runtime=15, retries=3)
+    test = MainTest(netperf_runtime=1, retries=1)
     test.pre_run()
     test.run()
     test.post_run()

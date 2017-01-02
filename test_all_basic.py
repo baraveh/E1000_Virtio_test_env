@@ -30,7 +30,7 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
-        netperf_graph = Graph("msg size", "throughput", r"/tmp/virtualbox-throughput.pdf", r"/tmp/virtualbox-throughput.txt")
+        netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput.pdf", r"/tmp/throughput.txt")
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
@@ -42,10 +42,36 @@ class MainTest(TestBase):
     def get_vms(self):
         virtualbox_e1000 = VirtualBox(r"e1000", "192.168.56.101", "192.168.56.1")
         virtualbox_virtio = VirtualBox(r"virtio", "192.168.56.102", "192.168.56.1")
+
+        vmware_e1000 = VMware(r"/homes/bdaviv/Shared\ VMs/Ubuntu\ Linux\ -\ e1000/Ubuntu\ Linux\ -\ e1000.vmx",
+                              "192.168.221.128", "192.168.221.1")
+        vmware_para = VMware(
+            r"/homes/bdaviv/Shared\ VMs/Ubuntu\ Linux\ -\ paravirtual_nic/Ubuntu\ Linux\ -\ paravirtual_nic.vmx",
+            "192.168.221.129", "192.168.221.1")
+
+        qemu_virtio = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                           guest_ip="10.10.0.43",
+                           host_ip="10.10.0.44")
+        qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
+
+        qemu_e1000 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                          guest_ip="10.10.0.43",
+                          host_ip="10.10.0.44")
+        qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
+
+        qemu_e1000_best = QemuE1000Max(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                                       guest_ip="10.10.0.43",
+                                       host_ip="10.10.0.44")
+
         return [
-                (virtualbox_e1000, "virtualbox_e1000"),
-                (virtualbox_virtio, "virtualbox_virtio"),
-                ]
+            (virtualbox_e1000, "virtualbox_e1000"),
+            (virtualbox_virtio, "virtualbox_virtio"),
+            (vmware_e1000, "vmware_e1000"),
+            (vmware_para, "vmware_para"),
+            (qemu_virtio, "qemu_virtio"),
+            (qemu_e1000, "qemu_e1000"),
+            (qemu_e1000_best, "qemu_e1000_best"),
+        ]
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int):
         self.netperf.run_netperf(vm, vm_name, msg_size, msg_size)

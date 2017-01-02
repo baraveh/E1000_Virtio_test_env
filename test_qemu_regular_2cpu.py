@@ -30,12 +30,12 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
-        netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput.pdf", r"/tmp/throughput.txt")
+        netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput_2cpu.pdf", r"/tmp/throughput_2cpu.txt")
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
         packet_sensor = PacketNumberSensor(
-            Graph("msg size", "packet number", r"/tmp/packet_num.pdf", r"/tmp/packet_num.txt"),
-            Graph("msg size", "average packet size", r"/tmp/packet_size.pdf", r"/tmp/packet_size.txt")
+            Graph("msg size", "packet number", r"/tmp/packet_num_2cpu.pdf", r"/tmp/packet_num_2cpu.txt"),
+            Graph("msg size", "average packet size", r"/tmp/packet_size_2cpu.pdf", r"/tmp/packet_size_2cpu.txt")
         )
         return [self.netperf, packet_sensor]
 
@@ -44,15 +44,18 @@ class MainTest(TestBase):
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
+        qemu_virtio.io_thread_cpu = "1"
 
         qemu_e1000 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
         qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
+        qemu_e1000.io_thread_cpu = "1"
 
         qemu_e1000_best = QemuE1000Max(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
                                guest_ip="10.10.0.43",
                                host_ip="10.10.0.44")
+        qemu_e1000_best.io_thread_cpu = "1"
 
         # self.qemu_virtio_1g = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
         #                            guest_ip="10.10.0.43",
