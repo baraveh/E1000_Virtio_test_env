@@ -1,3 +1,5 @@
+from time import sleep
+
 from utils.vms import VM, Qemu
 from utils.sensors import Sensor
 import logging
@@ -15,6 +17,7 @@ class TestBase:
         self._sensors = self.get_sensors()
 
         self._msg_sizes = self.get_msg_sizes()
+        self._stop_after_test = False
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int):
         raise NotImplementedError()
@@ -55,6 +58,8 @@ class TestBase:
                 import traceback
                 traceback.print_exc()
             finally:
+                if self._stop_after_test:
+                    input("Press Enter to continue")
                 vm.teardown()
 
     def post_run(self):
@@ -75,21 +80,12 @@ class TestBase2VM(TestBase):
             sensor.set_x_tics(labels=[size_name for _, size_name in self._msg_sizes],
                               values=[size for size, _ in self._msg_sizes])
 
-    def configure_vms(self, vm1, vm2):
-        pass
-
-    def teardown_vms(self, vm1, vm2):
-        pass
-
     def run(self):
         for vm1, vm2, vm_name in self._vms:
             vm1.setup()
+            vm1.run()
             vm2.setup()
-            vm1.run(False)
-            vm2.run(False)
-            self.configure_vms(vm1, vm2)
-            vm1.configure_guest()
-            vm2.configure_guest()
+            vm2.run()
             try:
                 for msg_size, msg_size_name in self._msg_sizes:
                     for i in range(self._retries):
@@ -102,12 +98,13 @@ class TestBase2VM(TestBase):
                         for sensor in self._sensors:
                             sensor.test_after(vm1, vm_name, msg_size)
             except KeyboardInterrupt:
-                pass
+                raise
             except:
                 import traceback
                 traceback.print_exc()
                 input("press enter to continue")
+                raise
             finally:
                 vm2.teardown()
                 vm1.teardown()
-                self.teardown_vms(vm1, vm2)
+                sleep(10)

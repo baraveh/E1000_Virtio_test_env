@@ -8,6 +8,18 @@ from utils.shell_utils import run_command, run_command_check
 Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
 
 
+class QemuE1000GuestOnly(QemuE1000Max):
+    def __init__(self, *args, **kwargs):
+        super(QemuE1000GuestOnly, self).__init__(*args, **kwargs)
+        del self.qemu_config["no_tcp_csum_on"]
+
+    def _configure_host(self):
+        pass
+
+    def _reset_host_configuration(self):
+        pass
+
+
 class MainTest(TestBase2VM):
     def __init__(self, netperf_runtime, *args, **kargs):
         self.netperf_runtime = netperf_runtime
@@ -15,7 +27,7 @@ class MainTest(TestBase2VM):
 
     def get_msg_sizes(self):
         return [
-            (65160, "65K"),
+            # (65160, "65K"),
             (64 * 2 ** 10, "64K"),
             (32 * 2 ** 10, "32K"),
             (16 * 2 ** 10, "16K"),
@@ -46,60 +58,63 @@ class MainTest(TestBase2VM):
     def get_vms(self):
         qemu_virtio1 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
                             guest_ip="10.10.0.43",
-                            host_ip="")
+                            host_ip="10.10.0.44")
         qemu_virtio1.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
                             guest_ip="10.10.0.42",
-                            host_ip="")
+                            host_ip="10.10.0.44")
         qemu_virtio2.vnc_number = 11
         qemu_virtio2.ethernet_dev = Qemu.QEMU_VIRTIO
-        qemu_virtio2.mac_address="52:54:00:a0:e5:1d"
-        qemu_virtio2.cpu_to_pin=3
+        qemu_virtio2.mac_address = "52:54:00:a0:e5:1d"
+        qemu_virtio2.cpu_to_pin = 3
 
         qemu_e1000_1 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
                             guest_ip="10.10.0.43",
-                            host_ip="")
+                            host_ip="10.10.0.44")
         qemu_e1000_1.ethernet_dev = Qemu.QEMU_E1000
         qemu_e1000_2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
                             guest_ip="10.10.0.42",
-                            host_ip="")
+                            host_ip="10.10.0.44")
         qemu_e1000_2.ethernet_dev = Qemu.QEMU_E1000
         qemu_e1000_2.vnc_number = 11
-        qemu_e1000_2.mac_address="52:54:00:a0:e5:1d"
-        qemu_e1000_2.cpu_to_pin=3
+        qemu_e1000_2.mac_address = "52:54:00:a0:e5:1d"
+        qemu_e1000_2.cpu_to_pin = 3
 
-        qemu_e1000_best1 = QemuE1000Max(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
-                                        guest_ip="10.10.0.43",
-                                        host_ip="")
-        qemu_e1000_best2 = QemuE1000Max(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
-                                        guest_ip="10.10.0.42",
-                                        host_ip="")
+        qemu_e1000_best1 = QemuE1000GuestOnly(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+                                              guest_ip="10.10.0.43",
+                                              host_ip="10.10.0.44")
+        qemu_e1000_best2 = QemuE1000GuestOnly(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
+                                              guest_ip="10.10.0.42",
+                                              host_ip="10.10.0.44")
         qemu_e1000_best2.vnc_number = 11
-        qemu_e1000_best2.mac_address="52:54:00:a0:e5:1d"
-        qemu_e1000_best2.cpu_to_pin=3
+        qemu_e1000_best2.mac_address = "52:54:00:a0:e5:1d"
+        qemu_e1000_best2.cpu_to_pin = 3
+
+        for vm in (qemu_virtio1, qemu_virtio2, qemu_e1000_1, qemu_e1000_2, qemu_e1000_best1,
+                   qemu_e1000_best2):
+            vm.bridge = "br-vms"
+            # vm.cpu_to_pin = "0-3"
 
         return [
-            (qemu_virtio1, qemu_virtio2, "qemu_virtio_base"),
             (qemu_e1000_1, qemu_e1000_2, "qemu_e1000_base"),
-            (qemu_e1000_best1, qemu_e1000_best2, "qemu_e1000"),
+            (qemu_virtio1, qemu_virtio2, "qemu_virtio_base"),
+            (qemu_e1000_best1, qemu_e1000_best2, "qemu_e1000_tcp_checksum"),
         ]
 
-    def configure_vms(self, vm1, vm2):
-        if isinstance(vm1, Qemu) and isinstance(vm2, Qemu):
-            run_command_check("sudo brctl addbr br-vms")
-            run_command_check("sudo brctl addif br-vms {}".format(vm1.tap_device))
-            run_command_check("sudo brctl addif br-vms {}".format(vm2.tap_device))
-            run_command_check("sudo  ip link set {tap} up".format(tap="br-vms"))
-            run_command_check("sudo ip a a {host_ip}/24 dev {tap}".format(host_ip="10.10.0.44",
-                                                                          tap="br-vms"))
+    def configure_bride(self):
+        run_command("sudo brctl addbr br-vms")
+        run_command("sudo  ip link set {tap} up".format(tap="br-vms"))
+        run_command("sudo ip a a {host_ip}/24 dev {tap}".format(host_ip="10.10.0.44",
+                                                                tap="br-vms"))
 
-    def teardown_vms(self, vm1, vm2):
-        if isinstance(vm1, Qemu) and isinstance(vm2, Qemu):
-            run_command_check("sudo  ip link set {tap} down".format(tap="br-vms"))
-            run_command_check("sudo brctl delbr br-vms")
+    def teardown_bridge(self):
+        run_command_check("sudo  ip link set {tap} down".format(tap="br-vms"))
+        run_command_check("sudo brctl delbr br-vms")
 
 if __name__ == "__main__":
     test = MainTest(15, retries=3)
+    test.configure_bride()
     test.pre_run()
     test.run()
     test.post_run()
+    test.teardown_bridge()

@@ -27,7 +27,7 @@ class Sensor:
 
 class SensorBeforeAfter(Sensor):
     def __init__(self, *args, **kargs):
-        super(SensorBeforeAfter, self).__init__(self, *args, **kargs)
+        super(SensorBeforeAfter, self).__init__(*args, **kargs)
         self._value = 0
 
     def _get_value(self, vm: VM):

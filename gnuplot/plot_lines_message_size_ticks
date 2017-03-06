@@ -7,10 +7,10 @@ set xlabel x_label
 set macros
 #x_tics_string="(\"A\" 1, \"B\" 2, \"C\" 3)"
 set xtics @x_tics
-set xtics rotate by 45 right
+#set xtics rotate by 45 right
 
 #legend
-#set key outside center top
+set key outside center top
 
 set grid ytics lc rgb "#bbbbbb" lw 1 lt 0
 set grid xtics lc rgb "#bbbbbb" lw 1 lt 0

@@ -2,7 +2,7 @@ import logging
 import os
 from utils.shell_utils import run_command_output, run_command_check, run_command_remote, run_command_async, run_command
 from time import sleep
-from tempfile import NamedTemporaryFile, mktemp
+from tempfile import NamedTemporaryFile
 import signal
 
 logging.basicConfig()
@@ -32,7 +32,7 @@ class VM:
         raise NotImplementedError()
 
     def configure_guest(self):
-        pass
+        self.remote_command("echo hello")
 
     def shutdown(self):
         self.remote_command("poweroff")
@@ -57,7 +57,7 @@ class Qemu(VM):
     QEMU_E1000 = "e1000"
     QEMU_VIRTIO = "virtio-net-pci"
 
-    def __init__(self, disk_path, guest_ip, host_ip, cpu_to_pin = "2"):
+    def __init__(self, disk_path, guest_ip, host_ip, cpu_to_pin="2"):
         super(Qemu, self).__init__(disk_path, guest_ip, host_ip)
 
         self.cpu_to_pin = cpu_to_pin
@@ -65,7 +65,7 @@ class Qemu(VM):
         self.mac_address = "52:54:00:a0:e5:1c"
         self.vnc_number = "10"
 
-        self.ethernet_dev = "e1000" # can be "virtio-net-pci" or "e1000"
+        self.ethernet_dev = self.QEMU_E1000  # can be "virtio-net-pci" or "e1000"
         self.vhost = False
         self.sidecore = False
         self.mem = "4096"
@@ -77,6 +77,8 @@ class Qemu(VM):
         self.pidfile = NamedTemporaryFile()
 
         self.qemu_config = dict()
+        self.bridge = None
+        self.exe = self.QEMU_EXE
 
     def create_tun(self):
         """
@@ -88,11 +90,15 @@ class Qemu(VM):
         self.tap_device = output.split("'")[1]
 
         run_command_check("sudo  ip link set {tap} up".format(tap=self.tap_device))
-        if self.ip_host:
+        if self.ip_host and not self.bridge:
             run_command_check("sudo ip a a {host_ip}/24 dev {tap}".format(host_ip=self.ip_host,
-                                                                      tap=self.tap_device))
+                                                                          tap=self.tap_device))
+        if self.bridge:
+            run_command_check("sudo brctl addif {br} {iff}".format(br=self.bridge, iff=self.tap_device))
 
     def delete_tun(self):
+        if self.bridge:
+            run_command_check("sudo brctl delif {br} {iff}".format(br=self.bridge, iff=self.tap_device))
         run_command_check("sudo tunctl -d {tap}".format(tap=self.tap_device))
 
     def load_kvm(self):
@@ -125,24 +131,24 @@ class Qemu(VM):
         else:
             sidecore_param = ""
 
-        qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} "\
-                       "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 "\
-                       "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 "\
-                       "-netdev tap,ifname={tap},id=net0,script=no{vhost} "\
-                       "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile} "\
+        qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
+                       "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
+                       "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 " \
+                       "-netdev tap,ifname={tap},id=net0,script=no{vhost} " \
+                       "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile} " \
                        "-vnc :{vnc} ".format(
-                            cpu=self.cpu_to_pin,
-                            qemu_exe=self.QEMU_EXE,
-                            sidecore=sidecore_param,
-                            disk=self.path,
-                            tap=self.tap_device,
-                            vhost=vhost_param,
-                            dev_type=self.ethernet_dev,
-                            mac=self.mac_address,
-                            pidfile=self.pidfile.name,
-                            vnc=self.vnc_number,
-                            mem=self.mem,
-                       )
+            cpu=self.cpu_to_pin,
+            qemu_exe=self.exe,
+            sidecore=sidecore_param,
+            disk=self.path,
+            tap=self.tap_device,
+            vhost=vhost_param,
+            dev_type=self.ethernet_dev,
+            mac=self.mac_address,
+            pidfile=self.pidfile.name,
+            vnc=self.vnc_number,
+            mem=self.mem,
+        )
         run_command_async(qemu_command)
         if self.qemu_config:
             sleep(1)
@@ -158,11 +164,12 @@ class Qemu(VM):
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():
                 f.write("{} {}\n".format(name, value))
+                logger.debug("set qemu option: %s=%s", name, value)
         self._signal_qemu()
 
     def _get_pid(self):
         with open(self.pidfile.name, "r") as f:
-            pid =  int(f.read().strip())
+            pid = int(f.read().strip())
         return pid
 
     def _signal_qemu(self):
@@ -187,7 +194,8 @@ class QemuE1000Max(Qemu):
             "no_tcp_csum_on": 1,
             "zero_copy_on": 1,
             "tdt_handle_on_iothread": 1,
-            "interrupt_mitigation_multiplier":10
+            "interrupt_mitigation_multiplier": 10,
+            "smart_interrupt_mitigarion" : 1,
         }
         self.ethernet_dev = self.QEMU_E1000
 
@@ -218,20 +226,33 @@ class VMware(VM):
         sleep(1)
 
 
+virtualBox_count = 0
 class VirtualBox(VM):
     BOOTUP_WAIT = 30
     POWEROFF_WAIT = 10
 
     def setup(self):
-        run_command_check("sudo rcvboxdrv start")
-        sleep(1)
-        run_command_check("VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.56.1")
-        run_command_check("VBoxManage dhcpserver modify --ifname vboxnet0 --ip 192.168.56.100 --netmask 255.255.255.0 --lowerip 192.168.56.101 --upperip 192.168.56.150 --enable")
+        global virtualBox_count
+        if virtualBox_count == 0:
+            run_command_check("sudo rcvboxdrv start")
+            sleep(1)
+            run_command_check("VBoxManage hostonlyif create")
+            run_command_check("VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.56.1")
+            run_command_check(
+                "VBoxManage dhcpserver modify --ifname vboxnet0 --ip 192.168.56.100 --netmask 255.255.255.0 --lowerip 192.168.56.101 --upperip 192.168.56.150 --enable")
+        virtualBox_count += 1
 
     def teardown(self):
-        self.shutdown()
-        run_command_check("sudo rcvboxdrv stop")
-        sleep(1)
+        try:
+            self.shutdown()
+        except:
+            pass
+        run_command("VBoxManage controlvm {} acpipowerbutton".format(self.path))
+        global virtualBox_count
+        virtualBox_count -= 1
+        if virtualBox_count == 0:
+            run_command("sudo rcvboxdrv stop")
+            sleep(1)
 
     def _run(self):
         command = "VBoxManage startvm {} --type headless".format(self.path)

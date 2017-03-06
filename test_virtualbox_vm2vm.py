@@ -1,5 +1,5 @@
 from sensors.packet_num import PacketNumberSensor
-from utils.test_base import TestBase
+from utils.test_base import TestBase, TestBase2VM
 from utils.vms import Qemu, VM, QemuE1000Max, VMware, VirtualBox
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
@@ -8,14 +8,14 @@ from utils.shell_utils import run_command
 Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64" 
 
 
-class MainTest(TestBase):
+class MainTest(TestBase2VM):
     def __init__(self, netperf_runtime, *args, **kargs):
         self.netperf_runtime = netperf_runtime
         super(MainTest, self).__init__(*args, **kargs)
 
     def get_msg_sizes(self):
         return [
-                (65160, "65K"),
+                # (65160, "65K"),
                 (64*2**10, "64K"),
                 (32*2**10, "32K"),
                 (16*2**10, "16K"),
@@ -30,7 +30,7 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
-        netperf_graph = Graph("msg size", "throughput", r"/tmp/virtualbox-throughput.pdf", r"/tmp/virtualbox-throughput.txt")
+        netperf_graph = Graph("msg size", "throughput", r"/tmp/throughput_virtualbox_vm2vm.pdf", r"/tmp/throughput_virtualbox_vm2vm.txt")
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
@@ -40,15 +40,18 @@ class MainTest(TestBase):
         return [self.netperf] # , packet_sensor]
 
     def get_vms(self):
-        virtualbox_e1000 = VirtualBox(r"e1000", "192.168.56.101", "192.168.56.1")
+        virtualbox_e1000 = VirtualBox(r"e1000", "192.168.56.103", "192.168.56.1")
+        virtualbox_e1000_1 = VirtualBox(r"e1000_cp", "192.168.56.101", "192.168.56.1")
         virtualbox_virtio = VirtualBox(r"virtio", "192.168.56.102", "192.168.56.1")
-        return [
-                (virtualbox_e1000, "virtualbox_e1000"),
-                (virtualbox_virtio, "virtualbox_virtio"),
-                ]
+        virtualbox_virtio_1 = VirtualBox(r"virtio_cp", "192.168.56.104", "192.168.56.1")
 
-    def test_func(self, vm: VM, vm_name: str, msg_size: int):
-        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size=msg_size)
+        return [
+            (virtualbox_e1000, virtualbox_e1000_1, "virtualbox_e1000"),
+            (virtualbox_virtio, virtualbox_virtio_1, "virtualbox_virtio"),
+        ]
+
+    def test_func(self, vm: VM, vm_name: str, msg_size: int, remote_ip=None):
+        self.netperf.run_netperf(vm, vm_name, msg_size, remote_ip=remote_ip, msg_size=msg_size)
 
 if __name__ == "__main__":
     test = MainTest(netperf_runtime=15, retries=3)

@@ -15,7 +15,7 @@ class MainTest(TestBase):
 
     def get_msg_sizes(self):
         return [
-                (65160, "65K"),
+                # (65160, "65K"),
                 (64*2**10, "64K"),
                 (32*2**10, "32K"),
                 (16*2**10, "16K"),
@@ -78,7 +78,7 @@ class MainTest(TestBase):
                 ]
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int):
-        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size)
+        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size=msg_size)
 
 if __name__ == "__main__":
     test = MainTest(15, retries=3)

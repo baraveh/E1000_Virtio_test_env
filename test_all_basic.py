@@ -74,7 +74,7 @@ class MainTest(TestBase):
         ]
 
     def test_func(self, vm: VM, vm_name: str, msg_size: int):
-        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size)
+        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size=msg_size)
 
 if __name__ == "__main__":
     test = MainTest(netperf_runtime=15, retries=3)

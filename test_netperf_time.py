@@ -61,7 +61,7 @@ class MainTest(TestBase):
 
     def test_func(self, vm: VM, msg_size_name: str, runtime: int, msg_size):
         self.netperf.runtime = runtime
-        self.netperf.run_netperf(vm, msg_size_name, runtime, msg_size)
+        self.netperf.run_netperf(vm, msg_size_name, msg_size, msg_size=msg_size)
 
     def pre_run(self):
         for sensor in self._sensors:
