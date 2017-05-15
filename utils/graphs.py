@@ -15,12 +15,14 @@ logger.setLevel(logging.DEBUG)
 
 
 class GraphBase:
-    def __init__(self, x_label, y_label, output_filename, data_filename):
+    def __init__(self, x_label, y_label, output_filename, data_filename, graph_title="",
+                 normalize=1):
         self.titles = list()
         self.x_label = x_label
         self.y_label = y_label
         self.x_tics = ''
         self.log_scale_x = 2
+        self.graph_title = graph_title
 
         self.output_filename = output_filename
         self.data_filename = data_filename
@@ -29,6 +31,7 @@ class GraphBase:
         self.data = dict()
         self.x_tics_values = []
         self.x_tics_names = []
+        self.normalize = normalize
 
     def set_column_names(self, titles):
         self.titles = titles
@@ -39,9 +42,9 @@ class GraphBase:
             self.data[x] = dict()
 
         if title not in self.data[x]:
-            self.data[x][title] = [float(value)]
+            self.data[x][title] = [float(value)/self.normalize]
         else:
-            self.data[x][title].append(float(value))
+            self.data[x][title].append(float(value)/self.normalize)
 
     def set_x_tics(self, values, labels):
         assert(len(values) == len(labels))
@@ -49,16 +52,7 @@ class GraphBase:
         self.x_tics_names = labels
 
     def create_data_file(self):
-        with open(self.data_filename, "w") as f:
-            f.write("title ")
-            for title in self.titles:
-                f.write("{} ".format(title))
-            f.write("\n")
-            for x in sorted(self.data):
-                f.write("{} ".format(x))
-                for title in self.titles:
-                    f.write("{} ".format(mean(self.data[x][title])))
-                f.write("\n")
+        raise NotImplementedError()
 
     def dump_to_json(self):
         with open(self.data_filename + ".json", "w") as f:
@@ -90,6 +84,18 @@ class GraphGnuplot(GraphBase):
         #self.x_tics += ")"
         self.x_tics = "({})".format(",".join(labels_tics))
 
+    def create_data_file(self):
+        with open(self.data_filename, "w") as f:
+            f.write("title ")
+            for title in self.titles:
+                f.write("{} ".format(title))
+            f.write("\n")
+            for x in sorted(self.data):
+                f.write("{} ".format(x))
+                for title in self.titles:
+                    f.write("{} ".format(mean((a for a in self.data[x][title]))))
+                f.write("\n")
+
     def create_graph(self, retries):
         """
         write data to file
@@ -106,6 +112,7 @@ class GraphGnuplot(GraphBase):
                   "output_filename='{output}'; " \
                   "data_filename='{data}'; " \
                   "data_filename2=''; " \
+                  "graph_title='{graph_title}';" \
                   "y_label='{y_label}'; " \
                   "x_label='{x_label}'; " \
                   "x_tics='{x_tics}'; " \
@@ -115,6 +122,7 @@ class GraphGnuplot(GraphBase):
                   "".format(
                         output=self.output_filename,
                         data=self.data_filename,
+                        graph_title=self.graph_title,
                         y_label=self.y_label,
                         x_label=self.x_label,
                         x_tics=self.x_tics,
@@ -173,8 +181,51 @@ class GraphErrorBars(GraphMatplotlib):
                      [stdev(self.data[x][title]) for x in sorted(self.data)],
                      )
 
+
+class GraphErrorBarsGnuplot(GraphGnuplot):
+    def __init__(self, *args, **kargs):
+        super(GraphErrorBarsGnuplot, self).__init__(*args, **kargs)
+        self.script_filename = "gnuplot/plot_lines_error_bars"
+
+    def create_data_file(self):
+        with open(self.data_filename, "w") as f:
+            f.write("title ")
+            for title in self.titles:
+                f.write("{} {}_min {}_max ".format(title, title, title))
+            f.write("\n")
+            for x in sorted(self.data):
+                f.write("{} ".format(x))
+                for title in self.titles:
+                    f.write("{mean} {min} {max} ".format(
+                        mean=mean(self.data[x][title]),
+                        min=min(self.data[x][title]),
+                        max=max(self.data[x][title])
+                    ))
+                f.write("\n")
+
 # set the default graph class
 Graph = GraphGnuplot
+
+
+class RatioGraph(Graph):
+    """
+    create graph with ratio between two different graphs
+    """
+    def __init__(self, graph1:GraphBase, graph2:GraphBase, *args, **kargs):
+        super(RatioGraph, self).__init__(*args, **kargs)
+        self.graph1 = graph1
+        self.graph2 = graph2
+
+    def _calc_data(self):
+        for x in self.graph1.data.keys():
+            for title in self.graph1.data[x].keys():
+                for val1, val2 in zip(self.graph1.data[x][title], self.graph2.data[x][title]):
+                    self.add_data(title, x, val1 / val2)
+
+    def create_graph(self, retries):
+        self._calc_data()
+        super(RatioGraph, self).create_graph(retries)
+
 
 if __name__ == "__main__":
     pass

@@ -10,7 +10,8 @@ class Sensor:
         self.graph = graph
 
     def test_before(self, vm: VM):
-        raise NotImplementedError()
+        error = NotImplementedError()
+        raise error
 
     def test_after(self, vm: VM, title, x):
         raise NotImplementedError()
@@ -52,3 +53,14 @@ class SensorBeforeAfter(Sensor):
         value2 = self._get_value(vm)
         delta = self._delta(self._value, value2)
         self.graph.add_data(title, x, delta)
+
+
+class DummySensor(Sensor):
+    """
+    Used to only ceate graph, without data logging
+    """
+    def test_after(self, vm: VM, title, x):
+        pass
+
+    def test_before(self, vm: VM):
+        pass

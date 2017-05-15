@@ -48,3 +48,12 @@ class NetPerfTCP(NetPerf):
 class NetPerfTCPNoDelay(NetPerfTCP):
     def test_params(self, msg_size):
         return " -- -m {} -D L,R".format(msg_size)
+
+
+class NetPerfLatency(NetPerf):
+    def __init__(self, *args, **kargs):
+        super(NetPerfLatency, self).__init__(*args, **kargs)
+        self.test = "TCP_RR"
+
+    def test_params(self, msg_size):
+        return " -- -r {},64".format(msg_size)

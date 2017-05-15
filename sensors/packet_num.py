@@ -33,4 +33,4 @@ class PacketNumberSensor(Sensor):
             total_size = int.from_bytes(f.read(8), byteorder='little', signed=False)
 
         self.packet_count_graph.add_data(title, x, packet_count)
-        self.packet_size_graph.add_data(title, x, float(total_size)/float(packet_count))
+        self.packet_size_graph.add_data(title, x, float(total_size)/(float(packet_count)+0.01))

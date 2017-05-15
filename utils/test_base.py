@@ -45,13 +45,19 @@ class TestBase:
                 for msg_size, msg_size_name in self._msg_sizes:
                     for i in range(self._retries):
                         for sensor in self._sensors:
-                            sensor.test_before(vm)
+                            try:
+                                sensor.test_before(vm)
+                            except:
+                                logger.error("Exception: ", exc_info=True)
 
                         logger.info("Runing vm=%s, msg size=%s", vm_name, msg_size_name)
                         self.test_func(vm, vm_name, msg_size)
 
                         for sensor in self._sensors:
-                            sensor.test_after(vm, vm_name, msg_size)
+                            try:
+                                sensor.test_after(vm, vm_name, msg_size)
+                            except:
+                                logger.error("Exception: ", exc_info=True)
             except KeyboardInterrupt:
                 pass
             except:

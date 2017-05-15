@@ -11,7 +11,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class VM:
-    BOOTUP_WAIT = 20
+    BOOTUP_WAIT = 35 #15
     POWEROFF_WAIT = 3
     USER = "user"
 
@@ -32,7 +32,7 @@ class VM:
         raise NotImplementedError()
 
     def configure_guest(self):
-        self.remote_command("echo hello")
+        pass
 
     def shutdown(self):
         self.remote_command("poweroff")
@@ -57,6 +57,8 @@ class Qemu(VM):
     QEMU_E1000 = "e1000"
     QEMU_VIRTIO = "virtio-net-pci"
 
+    BOOTUP_WAIT = 20
+
     def __init__(self, disk_path, guest_ip, host_ip, cpu_to_pin="2"):
         super(Qemu, self).__init__(disk_path, guest_ip, host_ip)
 
@@ -80,6 +82,8 @@ class Qemu(VM):
         self.bridge = None
         self.exe = self.QEMU_EXE
 
+        self.io_thread_nice = True
+
     def create_tun(self):
         """
         create tun device and assign it an IP
@@ -88,6 +92,7 @@ class Qemu(VM):
 
         output = run_command_output("sudo tunctl -u {user}".format(user=current_user))
         self.tap_device = output.split("'")[1]
+        assert self.tap_device == 'tap0'
 
         run_command_check("sudo  ip link set {tap} up".format(tap=self.tap_device))
         if self.ip_host and not self.bridge:
@@ -117,10 +122,11 @@ class Qemu(VM):
         self.shutdown()
         self._reset_host_configuration()
         self.delete_tun()
-        sleep(5)
+        sleep(2)
         self.unload_kvm()
 
     def _run(self):
+        assert self.QEMU_EXE
         if self.vhost:
             vhost_param = ",vhost=on"
         else:
@@ -131,12 +137,15 @@ class Qemu(VM):
         else:
             sidecore_param = ""
 
+        self.pidfile.close()
+        self.pidfile = NamedTemporaryFile()
+
         qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
                        "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 " \
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} " \
                        "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile} " \
-                       "-vnc :{vnc} ".format(
+                       "-vnc :{vnc}".format( #-monitor tcp:1234,server,nowait,nodelay
             cpu=self.cpu_to_pin,
             qemu_exe=self.exe,
             sidecore=sidecore_param,
@@ -151,7 +160,7 @@ class Qemu(VM):
         )
         run_command_async(qemu_command)
         if self.qemu_config:
-            sleep(1)
+            sleep(0.5)
             self.change_qemu_parameters()
 
     def change_qemu_parameters(self, config=None):
@@ -160,6 +169,8 @@ class Qemu(VM):
         if self.io_thread_cpu:
             command = "taskset -p -c {} {}".format(self.io_thread_cpu, self._get_pid())
             run_command_check(command)
+        if self.io_thread_nice:
+            run_command_check("renice -n 2 -p {}".format(self._get_pid()))
 
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():
@@ -195,9 +206,17 @@ class QemuE1000Max(Qemu):
             "zero_copy_on": 1,
             "tdt_handle_on_iothread": 1,
             "interrupt_mitigation_multiplier": 10,
-            "smart_interrupt_mitigarion" : 1,
+
+            "smart_interrupt_mitigation": 0,
+            "smart_interrupt_mitigarion": 0,
+            "latency_itr": 0,
+
+            "tx_packets_per_batch": 0,
+
+            "drop_packet_every": 8000,
         }
         self.ethernet_dev = self.QEMU_E1000
+        self.addiotional_guest_command = None
 
     def _configure_host(self):
         run_command_check("echo 1 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
@@ -207,6 +226,8 @@ class QemuE1000Max(Qemu):
 
     def configure_guest(self):
         self.remote_command("echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on")
+        if self.addiotional_guest_command:
+            self.remote_command(self.addiotional_guest_command)
 
 
 class VMware(VM):
