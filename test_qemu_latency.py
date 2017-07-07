@@ -2,8 +2,9 @@ from os import path
 
 import test_qemu_regular
 from sensors import netperf
+from sensors.cpu import get_all_cpu_sensors
 from sensors.interrupts import InterruptSensor
-from sensors.kvm_exits import KvmExitsSensor
+from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from utils.graphs import Graph, RatioGraph, GraphErrorBarsGnuplot
 from utils.sensors import DummySensor
@@ -32,9 +33,8 @@ class LatencyTest(test_qemu_regular.QemuRegularTest):
     def get_sensors(self):
         ret = super(LatencyTest, self).get_sensors()
         self.netperf = netperf.NetPerfLatency(
-            GraphErrorBarsGnuplot("msg size", "Transactions",
-                                  r"/home/bdaviv/tmp/latency.pdf",
-                                  r"/home/bdaviv/tmp/latency.txt",
+            GraphErrorBarsGnuplot("Message size [bytes]", "Transactions/Sec",
+                                  path.join(self.DIR, "latency"),
                                   graph_title="Latency"),
             runtime=self.netperf_runtime
         )
@@ -42,62 +42,78 @@ class LatencyTest(test_qemu_regular.QemuRegularTest):
 
         interrupt_sensor = InterruptSensor(
             Graph("msg size", "interrupt count (per sec)",
-                  r"/home/bdaviv/tmp/latency-interrupts.pdf",
-                  r"/home/bdaviv/tmp/latency-interrupts.txt",
+                  path.join(self.DIR, "latency-interrupts"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits = KvmExitsSensor(
             Graph("msg size", "exits count (per sec)",
-                  r"/home/bdaviv/tmp/latency-kvm_exits.pdf",
-                  r"/home/bdaviv/tmp/latency-kvm_exits.txt",
+                  path.join(self.DIR, "latency-kvm_exits"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits_ratio = DummySensor(
             RatioGraph(kvm_exits.graph, self.netperf.graph,
                        "msg size", "Exits per transaction",
-                       r"/home/bdaviv/tmp/latency-kvm_exits-ratio.pdf",
-                       r"/home/bdaviv/tmp/latency-kvm_exits-ratio.txt",
+                       path.join(self.DIR, "latency-kvm_exits-ratio"),
                        graph_title="KVM exits per transaction")
+        )
+
+        kvm_halt_exits = KvmHaltExitsSensor(
+            GraphErrorBarsGnuplot("msg size", "Halt exits count (per sec)",
+                                  path.join(self.DIR, "latency-kvm_halt_exits"),
+                                  normalize=self.netperf_runtime)
+        )
+
+        kvm_halt_exits_ratio = DummySensor(
+            RatioGraph(kvm_halt_exits.graph, self.netperf.graph,
+                       "msg size", "Halt Exits per transaction",
+                       path.join(self.DIR, "latency-kvm_halt_exits-ratio"),
+                       graph_title="KVM Haly exits per transaction")
         )
 
         packet_sensor_tx_bytes = PacketRxBytesSensor(
             Graph("msg size", "Total TX size",
-                  path.join(self.DIR, "latency-tx_bytes.pdf"),
-                  path.join(self.DIR, "latency-tx_bytes.txt"))
+                  path.join(self.DIR, "latency-tx_bytes"),
+                  normalize=self.netperf_runtime)
         )
         packet_sensor_tx_packets = PacketRxPacketsSensor(
             Graph("msg size", "Total TX packets",
-                  path.join(self.DIR, "latency-tx_packets.pdf"),
-                  path.join(self.DIR, "latency-tx_packets.txt"))
+                  path.join(self.DIR, "latency-tx_packets"),
+                  normalize=self.netperf_runtime)
         )
 
         packet_sensor_avg_size = DummySensor(
             RatioGraph(packet_sensor_tx_bytes.graph, packet_sensor_tx_packets.graph,
                        "msg size", "TX Packet Size",
-                       path.join(self.DIR, "latency-tx_packet-size.pdf"),
-                       path.join(self.DIR, "latency-tx_packet-size.txt")))
+                       path.join(self.DIR, "latency-tx_packet-size")))
 
         interrupt_ratio = DummySensor(
             RatioGraph(interrupt_sensor.graph, self.netperf.graph,
                        "msg size", "Interrupts per transaction",
-                       path.join(self.DIR, "latency-interrupts-ratio.pdf"),
-                       path.join(self.DIR, "latency-interrupts-ratio.txt"))
+                       path.join(self.DIR, "latency-interrupts-ratio"))
         )
+
+        cpu_sensors = get_all_cpu_sensors(self.DIR, "latency", self.netperf_runtime)
 
         return [self.netperf,
                 interrupt_sensor,
+
                 kvm_exits,
+                kvm_halt_exits,
                 kvm_exits_ratio,
+                kvm_halt_exits_ratio,
+
                 packet_sensor_tx_bytes,
                 packet_sensor_tx_packets,
-                packet_sensor_avg_size
-                ]
+                packet_sensor_avg_size,
+
+                interrupt_ratio
+                ] + cpu_sensors
 
 
 if __name__ == "__main__":
-    test = LatencyTest(5, retries=3)
+    test = LatencyTest(5, retries=1)
     test.pre_run()
     test.run()
     test.post_run()

@@ -29,7 +29,7 @@ class Sensor:
 class SensorBeforeAfter(Sensor):
     def __init__(self, *args, **kargs):
         super(SensorBeforeAfter, self).__init__(*args, **kargs)
-        self._value = 0
+        self._value_before = 0
 
     def _get_value(self, vm: VM):
         """
@@ -45,13 +45,14 @@ class SensorBeforeAfter(Sensor):
         :return: value to log into graph
         """
         raise NotImplementedError()
+        # return value2 - value1
 
     def test_before(self, vm: VM):
-        self._value = self._get_value(vm)
+        self._value_before = self._get_value(vm)
 
     def test_after(self, vm: VM, title, x):
         value2 = self._get_value(vm)
-        delta = self._delta(self._value, value2)
+        delta = self._delta(self._value_before, value2)
         self.graph.add_data(title, x, delta)
 
 

@@ -6,6 +6,7 @@ import json
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import os.path
 
 from utils.shell_utils import run_command_check
 
@@ -15,7 +16,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class GraphBase:
-    def __init__(self, x_label, y_label, output_filename, data_filename, graph_title="",
+    def __init__(self, x_label, y_label, output_filename: str, graph_title="",
                  normalize=1):
         self.titles = list()
         self.x_label = x_label
@@ -24,8 +25,9 @@ class GraphBase:
         self.log_scale_x = 2
         self.graph_title = graph_title
 
-        self.output_filename = output_filename
-        self.data_filename = data_filename
+        self.output_filename = output_filename + ".pdf"
+        self.data_filename = output_filename + ".txt"
+        self.json_filename = output_filename + ".json"
         self.data_filename2 = ""
 
         self.data = dict()
@@ -55,7 +57,7 @@ class GraphBase:
         raise NotImplementedError()
 
     def dump_to_json(self):
-        with open(self.data_filename + ".json", "w") as f:
+        with open(self.json_filename + ".json", "w") as f:
             json.dump(self.data, f)
 
     def create_graph(self, retries):
@@ -72,6 +74,8 @@ class GraphGnuplot(GraphBase):
     def __init__(self, *args, **kargs):
         super(GraphGnuplot, self).__init__(*args, **kargs)
         self.script_filename = "gnuplot/plot_lines_message_size_ticks"
+        assert isinstance(args[2], str)
+        self.command_file = args[2] + ".command"
 
     def set_x_tics(self, values, labels):
         super(GraphGnuplot, self).set_x_tics(values, labels)
@@ -129,7 +133,8 @@ class GraphGnuplot(GraphBase):
                         addition=addition,
                         script=self.script_filename
                   )
-
+        with open(self.command_file, "w") as f:
+            f.write(command)
         run_command_check(command)
 
 
@@ -211,7 +216,7 @@ class RatioGraph(Graph):
     """
     create graph with ratio between two different graphs
     """
-    def __init__(self, graph1:GraphBase, graph2:GraphBase, *args, **kargs):
+    def __init__(self, graph1: GraphBase, graph2: GraphBase, *args, **kargs):
         super(RatioGraph, self).__init__(*args, **kargs)
         self.graph1 = graph1
         self.graph2 = graph2

@@ -1,5 +1,5 @@
 from test_qemu_latency import LatencyTest
-from test_qemu_regular import QemuRegularTest
+from test_qemu_throughput import QemuRegularTest
 
 
 def main(runtime=3, retries=1):

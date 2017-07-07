@@ -1,6 +1,10 @@
+import logging
+
 from utils.sensors import Sensor
 from utils.vms import VM
 from utils.graphs import Graph
+
+logger = logging.getLogger(__name__)
 
 
 class NetPerf(Sensor):
@@ -12,10 +16,11 @@ class NetPerf(Sensor):
     def test_params(self, *args, **kargs):
         return ""
 
-    def run_netperf(self, vm: VM, title, x, remote_ip=None, *args, **kargs):
+    def run_netperf(self, vm: VM, title="", x="", remote_ip=None, *args, **kargs):
         if not remote_ip:
             remote_ip = vm.ip_host
 
+        logger.info("Netperf run: %d seconds, %s, params=%s", self.runtime, self.test, self.test_params(*args, **kargs))
         netperf_command = "netperf -H {ip} -l {runtime} -t {test_type} -v 0 {test_params}".format(
             ip=remote_ip,
             runtime=self.runtime,
@@ -27,7 +32,10 @@ class NetPerf(Sensor):
         # MIGRATED TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to 192.168.221.1 () port 0 AF_INET : demo
         # 2612.95
         value = float(output.split("\n")[1])
-        self.graph.add_data(title, x, value)
+        if self.graph:
+            self.graph.add_data(title, x, value)
+        else:
+            return value
 
     def test_after(self, vm: VM, title, x):
         pass

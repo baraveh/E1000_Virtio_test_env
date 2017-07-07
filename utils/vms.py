@@ -1,5 +1,8 @@
 import logging
 import os
+
+from qemu.qmp import QEMUMonitorProtocol
+from utils.machine import Machine
 from utils.shell_utils import run_command_output, run_command_check, run_command_remote, run_command_async, run_command
 from time import sleep
 from tempfile import NamedTemporaryFile
@@ -10,12 +13,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class VM:
+class VM(Machine):
     BOOTUP_WAIT = 35 #15
     POWEROFF_WAIT = 3
     USER = "user"
 
     def __init__(self, path, guest_ip, host_ip):
+        super(VM, self).__init__(guest_ip, self.USER)
         self.path = path
         self.ip_guest = guest_ip
         self.ip_host = host_ip
@@ -44,9 +48,6 @@ class VM:
         sleep(self.BOOTUP_WAIT)
         if configure_guest:
             self.configure_guest()
-
-    def remote_command(self, command):
-        return run_command_remote(self.ip_guest, self.USER, command)
 
 
 class Qemu(VM):
@@ -82,7 +83,17 @@ class Qemu(VM):
         self.bridge = None
         self.exe = self.QEMU_EXE
 
-        self.io_thread_nice = True
+        self.io_thread_nice = False
+
+        self.root = Machine(self._remote_ip, "root")
+
+        self.kernel = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
+        self.initrd = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
+        self.kernel_cmdline = r"BOOT_IMAGE=/vmlinuz-3.13.11-ckt22+ root=/dev/mapper/tapuz3--L1--vg-root ro"
+
+        self.nic_additionals=""
+
+        self.qmp = QEMUMonitorProtocol(('127.0.0.1', 1235))
 
     def create_tun(self):
         """
@@ -119,6 +130,7 @@ class Qemu(VM):
         self._configure_host()
 
     def teardown(self):
+        input("Press any ket to continue")
         self.shutdown()
         self._reset_host_configuration()
         self.delete_tun()
@@ -140,20 +152,35 @@ class Qemu(VM):
         self.pidfile.close()
         self.pidfile = NamedTemporaryFile()
 
+        kernel_spicific_boot = ""
+        if self.kernel:
+            kernel_spicific_boot = "-kernel {kernel} -initrd {initrd} -append '{cmdline}'".format(
+                kernel=self.kernel,
+                initrd=self.initrd,
+                cmdline=self.kernel_cmdline
+            )
+
         qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
+                       "{kernel_additions} " \
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
                        "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 " \
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} " \
-                       "-device {dev_type},netdev=net0,mac={mac} -pidfile {pidfile} " \
-                       "-vnc :{vnc}".format( #-monitor tcp:1234,server,nowait,nodelay
+                       "-object iothread,id=iothread0 " \
+                       "-device {dev_type},netdev=net0,mac={mac}{nic_additionals} -pidfile {pidfile} " \
+                       "-vnc :{vnc} " \
+                       "-monitor tcp:127.0.0.1:1234,server,nowait,nodelay " \
+                       "-qmp tcp:127.0.0.1:1235,server,nowait,nodelay " \
+                       "".format(  # -monitor tcp:1234,server,nowait,nodelay
             cpu=self.cpu_to_pin,
             qemu_exe=self.exe,
             sidecore=sidecore_param,
+            kernel_additions=kernel_spicific_boot,
             disk=self.path,
             tap=self.tap_device,
             vhost=vhost_param,
             dev_type=self.ethernet_dev,
             mac=self.mac_address,
+            nic_additionals=self.nic_additionals,
             pidfile=self.pidfile.name,
             vnc=self.vnc_number,
             mem=self.mem,
@@ -162,15 +189,16 @@ class Qemu(VM):
         if self.qemu_config:
             sleep(0.5)
             self.change_qemu_parameters()
+        self.qmp.connect()
 
     def change_qemu_parameters(self, config=None):
         if config:
             self.qemu_config.update(config)
         if self.io_thread_cpu:
-            command = "taskset -p -c {} {}".format(self.io_thread_cpu, self._get_pid())
+            command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
         if self.io_thread_nice:
-            run_command_check("renice -n 2 -p {}".format(self._get_pid()))
+            run_command_check("renice -n 2 -p {}".format(self.get_pid()))
 
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():
@@ -178,13 +206,13 @@ class Qemu(VM):
                 logger.debug("set qemu option: %s=%s", name, value)
         self._signal_qemu()
 
-    def _get_pid(self):
+    def get_pid(self):
         with open(self.pidfile.name, "r") as f:
             pid = int(f.read().strip())
         return pid
 
     def _signal_qemu(self):
-        pid = self._get_pid()
+        pid = self.get_pid()
         os.kill(pid, signal.SIGUSR1)
 
     def configure_guest(self):

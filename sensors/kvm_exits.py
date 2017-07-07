@@ -12,6 +12,14 @@ class KvmExitsSensor(SensorBeforeAfter):
         kvm_exits = run_command_output("sudo cat /sys/kernel/debug/kvm/exits")
         return int(kvm_exits)
 
+    def _delta(self, value1, value2):
+        return value2 - value1
+
+
+class KvmHaltExitsSensor(SensorBeforeAfter):
+    def _get_value(self, vm: VM):
+        kvm_exits = run_command_output("sudo cat /sys/kernel/debug/kvm/halt_exits")
+        return int(kvm_exits)
 
     def _delta(self, value1, value2):
         return value2 - value1
