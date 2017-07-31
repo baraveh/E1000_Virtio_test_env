@@ -31,7 +31,7 @@ class LatencyTest(test_qemu_regular.QemuRegularTest):
     #     ]
 
     def get_sensors(self):
-        ret = super(LatencyTest, self).get_sensors()
+        ret = super(LatencyTest, self).get_sensors
         self.netperf = netperf.NetPerfLatency(
             GraphErrorBarsGnuplot("Message size [bytes]", "Transactions/Sec",
                                   path.join(self.DIR, "latency"),

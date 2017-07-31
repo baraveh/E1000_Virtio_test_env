@@ -91,7 +91,7 @@ class Qemu(VM):
         self.initrd = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
         self.kernel_cmdline = r"BOOT_IMAGE=/vmlinuz-3.13.11-ckt22+ root=/dev/mapper/tapuz3--L1--vg-root ro"
 
-        self.nic_additionals=""
+        self.nic_additionals = ""
 
         self.qmp = QEMUMonitorProtocol(('127.0.0.1', 1235))
 
@@ -130,7 +130,6 @@ class Qemu(VM):
         self._configure_host()
 
     def teardown(self):
-        input("Press any ket to continue")
         self.shutdown()
         self._reset_host_configuration()
         self.delete_tun()
@@ -189,6 +188,7 @@ class Qemu(VM):
         if self.qemu_config:
             sleep(0.5)
             self.change_qemu_parameters()
+        sleep(1)
         self.qmp.connect()
 
     def change_qemu_parameters(self, config=None):
@@ -198,7 +198,7 @@ class Qemu(VM):
             command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
         if self.io_thread_nice:
-            run_command_check("renice -n 2 -p {}".format(self.get_pid()))
+                run_command_check("renice -n 2 -p {}".format(self.get_pid()))
 
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():

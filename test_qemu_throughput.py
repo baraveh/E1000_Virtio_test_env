@@ -3,6 +3,7 @@ from sensors.interrupts import InterruptSensor
 from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
 from sensors.packet_num import PacketNumberSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
+from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
 from utils.sensors import DummySensor
 from utils.test_base import TestBase
 from utils.vms import Qemu, VM, QemuE1000Max
@@ -35,18 +36,17 @@ class QemuRegularTest(TestBase):
 
     def get_msg_sizes(self):
         return [
-            # (65160, "65K"),
-            (64 * 2 ** 10, "64K"),
-            (32 * 2 ** 10, "32K"),
-            (16 * 2 ** 10, "16K"),
-            (8 * 2 ** 10, "8K"),
-            (4 * 2 ** 10, "4K"),
-            (2 * 2 ** 10, "2K"),
-            (1 * 2 ** 10, "1K"),
-            (512, "512"),
-            (256, "256"),
-            (128, "128"),
             (64, "64"),
+            (128, "128"),
+            (256, "256"),
+            (512, "512"),
+            (1 * 2 ** 10, "1K"),
+            (2 * 2 ** 10, "2K"),
+            (4 * 2 ** 10, "4K"),
+            (8 * 2 ** 10, "8K"),
+            (16 * 2 ** 10, "16K"),
+            (32 * 2 ** 10, "32K"),
+            (64 * 2 ** 10, "64K"),
         ]
 
     def get_sensors(self):
@@ -107,8 +107,30 @@ class QemuRegularTest(TestBase):
 
         kvm_halt_exits = KvmHaltExitsSensor(
             GraphErrorBarsGnuplot("msg size", "Halt exits count (per sec)",
-                                  path.join(self.DIR, "latency-kvm_halt_exits"),
+                                  path.join(self.DIR, "throughput-kvm_halt_exits"),
                                   normalize=self.netperf_runtime)
+        )
+
+        batch_size = QemuBatchSizeSensor(
+            Graph("msg size", "Average batch size (in packets)",
+                  path.join(self.DIR, "throughput-batch_size"))
+        )
+
+        batch_descriptos_size = QemuBatchDescriptorsSizeSensor(
+            Graph("msg size", "Average batch size (in descriptors)",
+                  path.join(self.DIR, "throughput-batch_descriptors_size"))
+        )
+
+        batch_count = QemuBatchCountSensor(
+            Graph("msg size", "Average batch Count (per Sec)",
+                  path.join(self.DIR, "throughput-batch_count"),
+                  normalize=self.netperf_runtime)
+        )
+
+        batch_halt_ratio = DummySensor(
+            RatioGraph(batch_count.graph, kvm_halt_exits.graph,
+                       "msg size", "batch count / kvm halt",
+                       path.join(self.DIR, "throughtput-batchCount_kvmHalt"))
         )
 
         cpu_sensors = get_all_cpu_sensors(self.DIR, "throughput", self.netperf_runtime)
@@ -126,6 +148,12 @@ class QemuRegularTest(TestBase):
                    kvm_halt_exits,
 
                    interrupt_ratio,
+
+                   batch_size,
+                   batch_descriptos_size,
+                   batch_count,
+                   batch_halt_ratio,
+
                ] + cpu_sensors
 
     def get_vms(self):
@@ -149,6 +177,11 @@ class QemuRegularTest(TestBase):
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur.qemu_config["latency_itr"] = 0
+        qemu_e1000_arthur_nice = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                         guest_ip="10.10.0.43",
+                                         host_ip="10.10.0.44")
+        qemu_e1000_arthur_nice.qemu_config["latency_itr"] = 0
+        qemu_e1000_arthur_nice.io_thread_nice = True
 
         qemu_smart_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                                       guest_ip="10.10.0.43",
@@ -193,9 +226,10 @@ class QemuRegularTest(TestBase):
         # qemu_virtio_drop.qemu_config["drop_packet_every"] = 0
         # qemu_virtio_drop.ethernet_dev = Qemu.QEMU_VIRTIO
         #
-        # qemu_large = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-        #                        guest_ip="10.10.0.43",
-        #                        host_ip="10.10.0.44")
+        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                               guest_ip="10.10.0.43",
+                               host_ip="10.10.0.44")
+        qemu_large_queue.io_thread_nice = True
 
         # qemu_e1000_best_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
         #                                guest_ip="10.10.0.43",
@@ -214,8 +248,6 @@ class QemuRegularTest(TestBase):
         # self.qemu_e1000_1g.ethernet_dev = Qemu.QEMU_E1000
         # self.qemu_e1000_1g.mem=1024
 
-        qemu_e1000_arthur.cpu_to_pin = "2,3"
-        qemu_e1000_io_thread.cpu_to_pin = "2,3"
         return [
             (qemu_virtio, "virtio-net_baseline"),
             # (qemu_virtio_latency, "virito-net_smart_latency"), # working?
@@ -224,14 +256,15 @@ class QemuRegularTest(TestBase):
             (qemu_e1000_baseline, "e1000_baseline"),
             # (qemu_e1000_newest, "qemu_e1000_newest"),
 
-            (qemu_e1000_arthur, "e1000_10x"),
+            (qemu_e1000_arthur, "e1000_10x_arthur"),
+            (qemu_e1000_arthur_nice, "qemu_e1000_arthur_nice"),
             # (qemu_smart_itr, "qemu_smart_latency1"),
             # (qemu_smart_itr2, "qemu_smart_latency2"),
-            (qemu_smart_itr3, "e1000_smart_latency"),  # working?
-            (qemu_e1000_io_thread, "qemu_io_thread"),
+            # (qemu_smart_itr3, "e1000_smart_latency"),  # working?
+            # (qemu_e1000_io_thread, "qemu_io_thread"),
 
             # (qemu_e1000_no_new_improv, "qemu_e1000_no_new_improv")
-            # (qemu_large, "qemu_large_ring"),
+            (qemu_large_queue, "qemu_large_ring_nice"),
             # (qemu_e1000_best_itr, "qemu_e1000_best_itr"),
             # (self.qemu_virtio_1g, "qemu_virtio_1G"),
             # (self.qemu_e1000_1g, "qemu_e1000_1G"),
@@ -242,7 +275,7 @@ class QemuRegularTest(TestBase):
 
 
 if __name__ == "__main__":
-    test = QemuRegularTest(5, retries=1)
+    test = QemuRegularTest(30, retries=1)
     test.pre_run()
     test.run()
     test.post_run()

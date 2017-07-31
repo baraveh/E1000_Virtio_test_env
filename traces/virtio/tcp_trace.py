@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 import shutil
@@ -5,9 +6,10 @@ from collections import Counter
 from math import log2
 
 from kernel_traces.kernel_trace import Trace
-from kernel_traces.trace_parser import Traces, TRACE_BEGIN_MSG, TRACE_END_MSG, delta2time
+from kernel_traces.trace_parser import Traces, TRACE_BEGIN_MSG, TRACE_END_MSG, delta2time, TraceFile
 from sensors.netperf import NetPerfLatency, NetPerfTCP
 from utils.machine import localRoot
+from utils.shell_utils import run_command_async
 from utils.vms import Qemu, QemuE1000Max
 
 ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
@@ -35,12 +37,13 @@ def main(directory=None):
     shutil.copyfile(ORIG_QEMU, TMP_QEMU)
     os.makedirs(trace_dir, exist_ok=True)
 
-    vm = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                      guest_ip="10.10.0.43",
-                      host_ip="10.10.0.44")
+    vm = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+              guest_ip="10.10.0.43",
+              host_ip="10.10.0.44")
+    vm.ethernet_dev = Qemu.QEMU_VIRTIO
     vm.qemu_config["latency_itr"] = 0
-    vm.ethernet_dev = 'e1000-82545em'
-    vm.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
+    vm.BOOTUP_WAIT = 15
+    # vm.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
 
     local_trace = Trace(localRoot, os.path.join(trace_dir, "trace_host"))
     local_trace.setup()
@@ -71,9 +74,9 @@ def main(directory=None):
     remote_trace = Trace(vm.root, os.path.join(trace_dir, "trace_guest"))
     remote_trace.setup()
     remote_trace.set_buffer_size(20000)
-    remote_trace.enable_event("napi/napi_poll")
+    remote_trace.enable_event("tcp")
     # remote_trace.enable_event("power/cpu_idle")
-    remote_trace.enable_event("irq/irq_handler_entry")
+    # remote_trace.enable_event("irq/irq_handler_entry")
     # remote_trace.enable_event("e1000/e1000_pre_mem_op")
     # remote_trace.enable_event("e1000/e1000_post_mem_op")
     # remote_trace.enable_event("e1000/e1000_set_tdt")
@@ -84,7 +87,7 @@ def main(directory=None):
     remote_trace.trace_on()
 
     netperf = NetPerfTCP(None, runtime=2)
-
+    run_command_async("tcpdump -i tap0 -s 100 -w {} -W 1 -G 7".format(os.path.join(trace_dir, "virtio.cap")))
     remote_trace.trace_marker(TRACE_BEGIN_MSG)
     netperf_perf = netperf.run_netperf(vm, msg_size="64K")
     remote_trace.trace_marker(TRACE_END_MSG)
@@ -109,6 +112,43 @@ def main(directory=None):
     vm.teardown()
 
 
+def trace2csv(dirname):
+    traces = TraceFile(os.path.join(dirname, "trace_guest"))
+    traces.parse()
+    start, end = [n for n, e in enumerate(traces.events) if e.event == 'tracing_mark_write']
+
+    with open(os.path.join(dirname, "virtio-calling.csv"), "w") as csvfile:
+        csvwritter = csv.writer(csvfile)
+        csvwritter.writerow(("timestamp", "cwnd", "inflight", "mss_now", "pacing_rate"))
+
+        for event in traces.events[start:end+1]:
+            if event.event == "tcp_send_info":
+                content = [event.timestamp] + [field.split("=")[1] for field in event.info.split(",")]
+                csvwritter.writerow(content)
+
+    with open(os.path.join(dirname, "virtio-sending.csv"), "w") as csvfile:
+        csvwritter = csv.writer(csvfile)
+        csvwritter.writerow(("timestamp", "cwnd", "inflight", "mss_now", "pacing_rate"))
+
+        for event, next_event in zip(traces.events[start:end], traces.events[start+1:end+1]):
+            if event.event == "tcp_send_info" and next_event.event == "tcp_sending":
+                content = [event.timestamp] + [field.split("=")[1] for field in event.info.split(",")]
+                csvwritter.writerow(content)
+
+    with open(os.path.join(dirname, "virtio-waiting.csv"), "w") as csvfile:
+        csvwritter = csv.writer(csvfile)
+        csvwritter.writerow(("timestamp", "wmem_queued", "sndbuf", "is_sleep"))
+
+        for event in traces.events[start:end+1]:
+            if event.event == "tcp_wait_for_memory":
+                content = [event.timestamp] + [field.split("=")[1] for field in event.info.split(",")]
+                csvwritter.writerow(content)
+
+    c = Counter((e.event for e in traces.events[start:end]))
+    logger.info(c)
+
+
+
 def startup():
     import sys
     d = None
@@ -122,6 +162,7 @@ def startup():
     root_logger.addHandler(logging.FileHandler(os.path.join(d, "log")))
 
     main(d)
+    trace2csv(d)
 
 
 if __name__ == "__main__":

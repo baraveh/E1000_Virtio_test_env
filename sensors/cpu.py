@@ -25,15 +25,16 @@ class CpuUtilizationEnum(Enum):
 
 
 class CpuUtilization:
-    def __init__(self, typ: CpuUtilizationEnum):
+    def __init__(self, typ: CpuUtilizationEnum, cpu="cpu2"):
         self._type = typ
+        self._cpu = cpu
 
     def read_value(self):
         with open("/proc/stat") as f:
-            line = f.readline()
-            split = line.split()
-            assert split[0] == "cpu"
-            return int(split[self._type.value])
+            for line in f:
+                split = line.split()
+                if split[0] == self._cpu:
+                    return int(split[self._type.value])
 
 
 class CpuUserSensor(SensorBeforeAfter):
