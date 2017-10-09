@@ -18,7 +18,7 @@ class MainTest(TestBase):
     def __init__(self, netperf_runtime, *args, **kargs):
         super(MainTest, self).__init__(*args, **kargs)
 
-    def get_msg_sizes(self):
+    def get_x_categories(self):
         return [
                 # (65160, "65K"),
                 # (64*2**10, "64K"),
@@ -59,13 +59,13 @@ class MainTest(TestBase):
             (qemu_virtio, "qemu_virtio"),
         ]
 
-    def test_func(self, vm: VM, msg_size_name: str, runtime: int, msg_size):
+    def test_func(self, vm: VM, msg_size_name: str, runtime: int, x_value):
         self.netperf.runtime = runtime
-        self.netperf.run_netperf(vm, msg_size_name, msg_size, msg_size=msg_size)
+        self.netperf.run_netperf(vm, msg_size_name, x_value, msg_size=x_value)
 
     def pre_run(self):
         for sensor in self._sensors:
-            sensor.set_column_names([msg_size_name for _, msg_size_name in self._msg_sizes])
+            sensor.set_column_names([msg_size_name for _, msg_size_name in self._x_categories])
             sensor.set_x_tics(labels=[str(times) for times in self.get_runtimes()],
                               values=[times for times in self.get_runtimes()])
 
@@ -74,7 +74,7 @@ class MainTest(TestBase):
             vm.setup()
             vm.run()
 
-            for msg_size, msg_size_name in self._msg_sizes:
+            for msg_size, msg_size_name in self._x_categories:
                 for runtime in self.get_runtimes():
                     for i in range(self._retries):
                         for sensor in self._sensors:

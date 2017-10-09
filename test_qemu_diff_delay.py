@@ -24,7 +24,7 @@ class MainTest(TestBase):
         super(MainTest, self).__init__(*args, **kargs)
         # self._stop_after_test = True
 
-    def get_msg_sizes(self):
+    def get_x_categories(self):
         return [
                 # (65160, "65K"),
                 (64*2**10, "64K"),
@@ -70,8 +70,8 @@ class MainTest(TestBase):
 
         return [(vm, "delay_{}".format(d)) for vm, d in vms]
 
-    def test_func(self, vm: VM, vm_name: str, msg_size: int):
-        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size=msg_size)
+    def test_func(self, vm: VM, vm_name: str, x_value: int):
+        self.netperf.run_netperf(vm, vm_name, x_value, msg_size=x_value)
 
 if __name__ == "__main__":
     test = MainTest(5, retries=1)

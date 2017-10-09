@@ -109,7 +109,7 @@ class GraphGnuplot(GraphBase):
         self.dump_to_json()
 
         addition = ""
-        if self.log_scale_x > 0:
+        if self.log_scale_x > 1:
             addition = "log_scale_x='{log}'; ".format(log=self.log_scale_x)
 
         command = "gnuplot -e \"" \

@@ -39,7 +39,7 @@ def main(directory=None):
               host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO
     vm.qemu_config["latency_itr"] = 2
-    vm.io_thread_nice = False
+    vm.is_io_thread_nice = False
     vm.BOOTUP_WAIT = 15
 
     local_trace = Trace(localRoot, os.path.join(trace_dir, "trace_host"))

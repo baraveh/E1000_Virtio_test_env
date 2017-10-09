@@ -2,10 +2,15 @@ from utils.sensors import Sensor, SensorBeforeAfter
 from utils.vms import Qemu
 
 
-class QemuBatchSizeSensor(SensorBeforeAfter):
+class QemuBatchQmpSensor(SensorBeforeAfter):
     def _get_value(self, vm: Qemu):
-        return vm.qmp.command("query-batch")
+        try:
+            return vm.qmp.command("query-batch")
+        except:
+            return {'batchCount': 0, 'packetCount': 0, 'descriptorsCount':0}
 
+
+class QemuBatchSizeSensor(QemuBatchQmpSensor):
     def _delta(self, value1, value2):
         batchCount = value2['batchCount'] - value1['batchCount']
         packetCount = value2['packetCount'] - value1['packetCount']
@@ -15,10 +20,7 @@ class QemuBatchSizeSensor(SensorBeforeAfter):
         return packetCount / batchCount
 
 
-class QemuBatchDescriptorsSizeSensor(SensorBeforeAfter):
-    def _get_value(self, vm: Qemu):
-        return vm.qmp.command("query-batch")
-
+class QemuBatchDescriptorsSizeSensor(QemuBatchQmpSensor):
     def _delta(self, value1, value2):
         batchCount = value2['batchCount'] - value1['batchCount']
         descriptorsCount = value2['descriptorsCount'] - value1['descriptorsCount']
@@ -28,10 +30,7 @@ class QemuBatchDescriptorsSizeSensor(SensorBeforeAfter):
         return descriptorsCount / batchCount
 
 
-class QemuBatchCountSensor(SensorBeforeAfter):
-    def _get_value(self, vm: Qemu):
-        return vm.qmp.command("query-batch")
-
+class QemuBatchCountSensor(QemuBatchQmpSensor):
     def _delta(self, value1, value2):
         batchCount = value2['batchCount'] - value1['batchCount']
 

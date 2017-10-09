@@ -24,6 +24,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+class QemuLargeRing(QemuE1000Max):
+    def configure_guest(self):
+        super(QemuLargeRing, self).configure_guest()
+        self.remote_command("sudo ethtool -G eth0 rx 4096")
+        self.remote_command("sudo ethtool -G eth0 tx 4096")
+
+
 def get_dir(directory=None):
     if directory:
         return directory
@@ -37,11 +44,13 @@ def main(directory=None):
     shutil.copyfile(ORIG_QEMU, TMP_QEMU)
     os.makedirs(trace_dir, exist_ok=True)
 
-    vm = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    vm = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                       guest_ip="10.10.0.43",
                       host_ip="10.10.0.44")
     del vm.qemu_config["drop_packet_every"]
-    vm.io_thread_nice = True
+    vm.is_io_thread_nice = True
+    vm.qemu_config["interrupt_mitigation_multiplier"] = 7
+
     # vm.ethernet_dev = 'e1000-82545em'
     # vm.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
 

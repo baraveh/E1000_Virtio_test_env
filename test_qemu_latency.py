@@ -1,6 +1,6 @@
 from os import path
 
-import test_qemu_regular
+import test_qemu_throughput
 from sensors import netperf
 from sensors.cpu import get_all_cpu_sensors
 from sensors.interrupts import InterruptSensor
@@ -10,7 +10,7 @@ from utils.graphs import Graph, RatioGraph, GraphErrorBarsGnuplot
 from utils.sensors import DummySensor
 
 
-class LatencyTest(test_qemu_regular.QemuRegularTest):
+class LatencyTest(test_qemu_throughput.QemuRegularTest):
     # def get_msg_sizes(self):
     #     return [(1, "1")]
 
@@ -113,7 +113,7 @@ class LatencyTest(test_qemu_regular.QemuRegularTest):
 
 
 if __name__ == "__main__":
-    test = LatencyTest(5, retries=1)
+    test = LatencyTest(15, retries=1)
     test.pre_run()
     test.run()
     test.post_run()

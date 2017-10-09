@@ -13,11 +13,11 @@ from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
 from os import path
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-#Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
+
 
 class QemuLargeRing(QemuE1000Max):
     def configure_guest(self):
@@ -37,15 +37,15 @@ class QemuRegularTest(TestBase):
     def get_x_categories(self):
         return [
             (64, "64"),
-            # (128, "128"),
+            (128, "128"),
             (256, "256"),
-            # (512, "512"),
+            (512, "512"),
             (1 * 2 ** 10, "1K"),
-            # (2 * 2 ** 10, "2K"),
+            (2 * 2 ** 10, "2K"),
             (4 * 2 ** 10, "4K"),
-            # (8 * 2 ** 10, "8K"),
+            (8 * 2 ** 10, "8K"),
             (16 * 2 ** 10, "16K"),
-            # (32 * 2 ** 10, "32K"),
+            (32 * 2 ** 10, "32K"),
             (64 * 2 ** 10, "64K"),
         ]
 
@@ -177,136 +177,39 @@ class QemuRegularTest(TestBase):
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur.qemu_config["latency_itr"] = 0
+        qemu_e1000_arthur.is_io_thread_nice = False
+
         qemu_e1000_arthur_nice = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur_nice.qemu_config["latency_itr"] = 0
-        qemu_e1000_arthur_nice.is_io_thread_nice = True
 
-        qemu_smart_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                      guest_ip="10.10.0.43",
-                                      host_ip="10.10.0.44")
-        qemu_smart_itr.qemu_config["latency_itr"] = 1
-        qemu_smart_itr.qemu_config["tx_packets_per_batch"] = 0
-        qemu_smart_itr.qemu_config["dynamic_latency_mode"] = 0
 
-        qemu_smart_itr2 = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                       guest_ip="10.10.0.43",
-                                       host_ip="10.10.0.44")
-        qemu_smart_itr2.qemu_config["latency_itr"] = 1
-        qemu_smart_itr2.ethernet_dev = 'e1000-82545em'
-        qemu_smart_itr2.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
-
-        qemu_smart_itr3 = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                       guest_ip="10.10.0.43",
-                                       host_ip="10.10.0.44")
-        qemu_smart_itr3.qemu_config["latency_itr"] = 2
-        qemu_smart_itr3.ethernet_dev = 'e1000-82545em'
-        qemu_smart_itr3.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
-
-        qemu_e1000_io_thread = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                            guest_ip="10.10.0.43",
-                                            host_ip="10.10.0.44")
-        qemu_e1000_io_thread.nic_additionals = ",iothread=iothread0"
-        # qemu_smart_itr3.ethernet_dev = 'e1000-82545em'
-        # qemu_smart_itr3.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
-        # qemu_smart_itr3.qemu_config["drop_packet_every"] = 0
-
-        #
-        # qemu_e1000_no_new_improv = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-        #                                      guest_ip="10.10.0.43",
-        #                                      host_ip="10.10.0.44")
-        # qemu_e1000_no_new_improv.qemu_config["smart_interrupt_mitigation"] = 0
-        # qemu_e1000_no_new_improv.qemu_config["drop_packet_every"] = 0
-        #
-        # qemu_virtio_drop = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-        #                                      guest_ip="10.10.0.43",
-        #                                      host_ip="10.10.0.44")
-        # qemu_virtio_drop.qemu_config["smart_interrupt_mitigation"] = 0
-        # qemu_virtio_drop.qemu_config["drop_packet_every"] = 0
-        # qemu_virtio_drop.ethernet_dev = Qemu.QEMU_VIRTIO
-        #
         qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                                guest_ip="10.10.0.43",
                                host_ip="10.10.0.44")
         qemu_large_queue.is_io_thread_nice = True
-        qemu_large_queue.qemu_config["drop_packet_every"]=0
 
-        qemu_large_queue_itr6 = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                         guest_ip="10.10.0.43",
-                                         host_ip="10.10.0.44")
-        qemu_large_queue_itr6.is_io_thread_nice = True
-        qemu_large_queue_itr6.qemu_config["interrupt_mitigation_multiplier"] = 6
-        qemu_large_queue_itr6.qemu_config["drop_packet_every"] = 0
+        qemu_large_queue_itr = list()
+        for i in range(2, 5, 1):
+            v = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                              guest_ip="10.10.0.43",
+                              host_ip="10.10.0.44")
+            v.is_io_thread_nice = True
+            v.qemu_config["interrupt_mode"] = 1
+            v.qemu_config["drop_packet_every"] = 0
+            v.qemu_config["interrupt_mitigation_multiplier"] = 1000
+            v.io_nice = i
 
-        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                              guest_ip="10.10.0.43",
-                                              host_ip="10.10.0.44")
-        qemu_large_queue_batch_itr.is_io_thread_nice = True
-        qemu_large_queue_batch_itr.io_nice = 4
-        qemu_large_queue_batch_itr.qemu_config["interrupt_mode"] = 1
-        qemu_large_queue_batch_itr.qemu_config["drop_packet_every"] = 0
-        qemu_large_queue_batch_itr.qemu_config["interrupt_mitigation_multiplier"] = 1000
-
-        # qemu_e1000_best_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-        #                                guest_ip="10.10.0.43",
-        #                                host_ip="10.10.0.44")
-        # qemu_e1000_best_itr.exe = r"/homes/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
-
-        # self.qemu_virtio_1g = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-        #                            guest_ip="10.10.0.43",
-        #                            host_ip="10.10.0.44")
-        # self.qemu_virtio_1g.ethernet_dev = Qemu.QEMU_VIRTIO
-        # self.qemu_virtio_1g.mem=1024
-        #
-        # self.qemu_e1000_1g = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-        #                           guest_ip="10.10.0.43",
-        #                           host_ip="10.10.0.44")
-        # self.qemu_e1000_1g.ethernet_dev = Qemu.QEMU_E1000
-        # self.qemu_e1000_1g.mem=
-
-        qemu_arthur_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                                          guest_ip="10.10.0.43",
-                                          host_ip="10.10.0.44")
-        qemu_arthur_arthur.ethernet_dev = qemu_arthur_arthur.QEMU_E1000
-        qemu_arthur_arthur.qemu_additionals = "-enable-e1000-pcix"
-        qemu_arthur_arthur.exe = "/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
-        qemu_arthur_arthur.qemu_config = {
-            "no_tso_loop_on": 1,
-            "no_tcp_csum_on": 1,
-            "tdt_handle_on_iothread": 1,
-            "interrupt_mitigation_multiplier": 10,
-            "drop_packet_every": 8000,
-            "drop_packet_every_avg_packet_size_min": 25000,
-            "drop_packet_every_avg_packet_size_max": 60000,
-            "zero_copy_on": 1,
-        }
+            qemu_large_queue_itr.append((v, "qemu_large_queueu_%d" % (i,)))
 
         return [
-                (qemu_virtio, "virtio-net_baseline"),
-            # (qemu_virtio_latency, "virito-net_smart_latency"), # working?
-            # (qemu_e1000_no_new_improv, "qemu_e1000_no_new_improv"),
+            # (qemu_virtio, "virtio-net_baseline"),
+            # (qemu_e1000_baseline, "e1000_baseline"),
 
-            (qemu_e1000_baseline, "e1000_baseline"),
-            # (qemu_e1000_newest, "qemu_e1000_newest"),
-
-                # (qemu_e1000_arthur, "e1000_10x_arthur"),
-            # (qemu_arthur_arthur, "e1000_arthur_version"),
-            #     (qemu_e1000_arthur_nice, "qemu_e1000_arthur_nice"),
-            # (qemu_smart_itr, "qemu_smart_latency1"),
-            # (qemu_smart_itr2, "qemu_smart_latency2"),
-            # (qemu_smart_itr3, "e1000_smart_latency"),  # working?
-            # (qemu_e1000_io_thread, "qemu_io_thread"),
-
-            # (qemu_e1000_no_new_improv, "qemu_e1000_no_new_improv")
-            # (qemu_large_queue, "qemu_large_ring_nice"),
-            # (qemu_large_queue_itr6, "qemu_large_ring_nice_itr6"),
-        # (qemu_large_queue_batch_itr, "qemu_large_queue_batch_itr"),
-
-            # (qemu_e1000_best_itr, "qemu_e1000_best_itr"),
-            # (self.qemu_virtio_1g, "qemu_virtio_1G"),
-            # (self.qemu_e1000_1g, "qemu_e1000_1G"),
-        ]
+            # (qemu_e1000_arthur, "e1000_10x_arthur"),
+            # (qemu_large_queue, "qemu_large_queue"),
+        ] + qemu_large_queue_itr
 
     def test_func(self, vm: VM, vm_name: str, x_value: int):
         self.netperf.run_netperf(vm, vm_name, x_value, msg_size=x_value)
