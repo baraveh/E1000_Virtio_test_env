@@ -1,5 +1,5 @@
 from sensors.packet_num import PacketNumberSensor
-from utils.test_base import TestBase
+from utils.test_base import TestBase, TestBaseNetperf
 from utils.vms import Qemu, VM, QemuE1000Max, VMware, VirtualBox
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph, GraphErrorBars, GraphGnuplot
@@ -8,7 +8,7 @@ from utils.shell_utils import run_command
 Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64" 
 
 
-class MainTest(TestBase):
+class MainTest(TestBaseNetperf):
     def __init__(self, netperf_runtime, *args, **kargs):
         self.netperf_runtime = netperf_runtime
         super(MainTest, self).__init__(*args, **kargs)

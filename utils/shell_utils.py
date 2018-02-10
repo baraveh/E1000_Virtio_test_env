@@ -6,13 +6,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def run_command(command_string, shell=False):
+def run_command(command_string, shell=False, cwd=None):
     logger.debug("Run command: %s", command_string)
     if shell:
         args = command_string
     else:
         args = shlex.split(command_string)
-    return subprocess.call(args, shell=shell)
+    return subprocess.call(args, shell=shell, cwd=cwd)
 
 
 def run_command_ex(command_string, shell=False, **kargs):
@@ -20,22 +20,22 @@ def run_command_ex(command_string, shell=False, **kargs):
     return subprocess.Popen(shlex.split(command_string), shell=shell, **kargs)
 
 
-def run_command_check(command_string, shell=False):
+def run_command_check(command_string, shell=False, cwd=None):
     logger.debug("Run command (checked): %s", command_string)
     if not shell:
         cmd = shlex.split(command_string)
     else:
         cmd = command_string
-    return subprocess.check_call(cmd, shell=shell)
+    return subprocess.check_call(cmd, shell=shell, cwd=cwd)
 
 
-def run_command_output(command_string, shell=False, log_output=True):
+def run_command_output(command_string, shell=False, log_output=True, cwd=None):
     logger.debug("Run command (checked): %s", command_string)
     if shell:
         args = command_string
     else:
         args = shlex.split(command_string)
-    output = subprocess.check_output(args, shell=shell)
+    output = subprocess.check_output(args, shell=shell, cwd=cwd)
     if log_output:
         logger.debug("Command output: %s", output)
     return output.decode()
@@ -56,6 +56,6 @@ def run_command_remote_ex(servername, user, command):
     return run_command_ex(full_command)
 
 
-def run_command_async(command, output_file=None):
+def run_command_async(command, output_file=None, cwd=None):
     logger.debug("Run command (async): %s", command)
-    subprocess.Popen(shlex.split(command), stdout=output_file)
+    subprocess.Popen(shlex.split(command), stdout=output_file, cwd=cwd)

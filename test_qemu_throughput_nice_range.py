@@ -5,18 +5,19 @@ from sensors.packet_num import PacketNumberSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
 from utils.sensors import DummySensor
-from utils.test_base import TestBase
-from utils.vms import Qemu, VM, QemuE1000Max
+from utils.test_base import TestBase, TestBaseNetperf
+from utils.vms import Qemu, VM, QemuE1000Max, QemuE1000NG, QemuLargeRingNG
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
 
 from os import path
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+# Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
+Qemu.QEMU_EXE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
 
 
 class QemuLargeRing(QemuE1000Max):
@@ -26,7 +27,7 @@ class QemuLargeRing(QemuE1000Max):
         self.remote_command("sudo ethtool -G eth0 tx 4096")
 
 
-class QemuRegularTest(TestBase):
+class QemuRegularTest(TestBaseNetperf):
     DIR = r"/home/bdaviv/tmp/results"
 
     def __init__(self, netperf_runtime, *args, **kargs):
@@ -191,17 +192,29 @@ class QemuRegularTest(TestBase):
         qemu_large_queue.is_io_thread_nice = True
 
         qemu_large_queue_itr = list()
-        for i in range(2, 5, 1):
-            v = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-                              guest_ip="10.10.0.43",
-                              host_ip="10.10.0.44")
+        for i in range(1, 5, 1):
+            v = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                            guest_ip="10.10.0.43",
+                            host_ip="10.10.0.44")
             v.is_io_thread_nice = True
             v.qemu_config["interrupt_mode"] = 1
             v.qemu_config["drop_packet_every"] = 0
             v.qemu_config["interrupt_mitigation_multiplier"] = 1000
             v.io_nice = i
 
-            qemu_large_queue_itr.append((v, "qemu_large_queueu_%d" % (i,)))
+            qemu_large_queue_itr.append((v, "qemu_ng_%d" % (i,)))
+
+        for i in range(1, 5, 1):
+            v = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                guest_ip="10.10.0.43",
+                                host_ip="10.10.0.44")
+            v.is_io_thread_nice = True
+            v.qemu_config["interrupt_mode"] = 1
+            v.qemu_config["drop_packet_every"] = 0
+            v.qemu_config["interrupt_mitigation_multiplier"] = 1000
+            v.io_nice = i
+
+            qemu_large_queue_itr.append((v, "qemu_large_ng_%d" % (i,)))
 
         return [
             # (qemu_virtio, "virtio-net_baseline"),
@@ -216,7 +229,7 @@ class QemuRegularTest(TestBase):
 
 
 if __name__ == "__main__":
-    test = QemuRegularTest(15, retries=1)
+    test = QemuRegularTest(5, retries=1)
     test.pre_run()
     test.run()
     test.post_run()

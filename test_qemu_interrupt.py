@@ -4,7 +4,7 @@ from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
 from sensors.packet_num import PacketNumberSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
-from test_qemu_throughput import QemuRegularTest
+from test_qemu_throughput import QemuThroughputTest
 from utils.sensors import DummySensor
 from utils.test_base import TestBase
 from utils.vms import Qemu, VM, QemuE1000Max
@@ -27,7 +27,7 @@ class QemuLargeRing(QemuE1000Max):
         self.remote_command("sudo ethtool -G eth0 tx 4096")
 
 
-class QemuNiceTest(QemuRegularTest):
+class QemuNiceTest(QemuThroughputTest):
     DIR = r"/home/bdaviv/tmp/results"
 
     def __init__(self, netperf_runtime, *args, **kargs):

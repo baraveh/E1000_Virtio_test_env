@@ -1,5 +1,6 @@
 import logging
 import os
+from subprocess import CalledProcessError
 
 from qemu.qmp import QEMUMonitorProtocol
 from utils.machine import Machine
@@ -23,6 +24,9 @@ class VM(Machine):
         self.path = path
         self.ip_guest = guest_ip
         self.ip_host = host_ip
+        self.name = None
+        self.bootwait = self.BOOTUP_WAIT
+        self.netperf_test_params = ""
 
     def setup(self):
         logger.info("Setup VM: %s", self)
@@ -45,7 +49,7 @@ class VM(Machine):
     def run(self, configure_guest=True):
         logger.info("Running VM: %s", self)
         self._run()
-        sleep(self.BOOTUP_WAIT)
+        sleep(self.bootwait)
         if configure_guest:
             self.configure_guest()
 
@@ -58,10 +62,11 @@ class Qemu(VM):
     QEMU_E1000 = "e1000"
     QEMU_VIRTIO = "virtio-net-pci"
 
-    BOOTUP_WAIT = 20
+    BOOTUP_WAIT = 10
 
     def __init__(self, disk_path, guest_ip, host_ip, cpu_to_pin="2"):
         super(Qemu, self).__init__(disk_path, guest_ip, host_ip)
+        self._pid = None
 
         self.cpu_to_pin = cpu_to_pin
         # self.cpu_num = cpu_num
@@ -77,23 +82,30 @@ class Qemu(VM):
 
         # auto config
         self.tap_device = ''
-        self.pidfile = NamedTemporaryFile()
+        self.pidfile = None
 
         self.qemu_config = dict()
         self.bridge = None
         self.exe = self.QEMU_EXE
 
-        self.io_thread_nice = False
+        self.is_io_thread_nice = False
+        self.io_nice = 1  # nice value to set
 
         self.root = Machine(self._remote_ip, "root")
 
-        self.kernel = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
-        self.initrd = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
+        # self.kernel = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
+        # self.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.13.9/arch/x86/boot/bzImage"
+        self.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.14.4/arch/x86/boot/bzImage"
+        # self.initrd = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
+        # self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.13.9-ng+"
+        self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.14.4-ng+"
         self.kernel_cmdline = r"BOOT_IMAGE=/vmlinuz-3.13.11-ckt22+ root=/dev/mapper/tapuz3--L1--vg-root ro"
+        self.kernel_cmdline_additional = ""
 
         self.nic_additionals = ""
+        self.qemu_additionals = ""
 
-        self.qmp = QEMUMonitorProtocol(('127.0.0.1', 1235))
+        self.qmp = None
 
     def create_tun(self):
         """
@@ -130,14 +142,24 @@ class Qemu(VM):
         self._configure_host()
 
     def teardown(self):
-        self.shutdown()
+        try:
+            self.shutdown()
+            self.qmp.close()
+        except:
+            pass
+        self.qmp = QEMUMonitorProtocol(('127.0.0.1', 1235))
+        self._pid = None
         self._reset_host_configuration()
         self.delete_tun()
         sleep(2)
         self.unload_kvm()
 
     def _run(self):
-        assert self.QEMU_EXE
+        assert self.exe
+
+        self.qmp = QEMUMonitorProtocol(('127.0.0.1', 1235))
+        self.pidfile = NamedTemporaryFile()
+
         if self.vhost:
             vhost_param = ",vhost=on"
         else:
@@ -153,19 +175,22 @@ class Qemu(VM):
 
         kernel_spicific_boot = ""
         if self.kernel:
-            kernel_spicific_boot = "-kernel {kernel} -initrd {initrd} -append '{cmdline}'".format(
+            kernel_spicific_boot = "-kernel {kernel} -initrd {initrd} -append '{cmdline} {cmdline_more}'".format(
                 kernel=self.kernel,
                 initrd=self.initrd,
-                cmdline=self.kernel_cmdline
+                cmdline=self.kernel_cmdline,
+                cmdline_more=self.kernel_cmdline_additional
             )
 
         qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
                        "{kernel_additions} " \
+                       "{qemu_additionals} " \
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
                        "-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 " \
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} " \
                        "-object iothread,id=iothread0 " \
-                       "-device {dev_type},netdev=net0,mac={mac}{nic_additionals} -pidfile {pidfile} " \
+                       "-device {dev_type},netdev=net0,mac={mac}{nic_additionals} " \
+                       "-pidfile {pidfile} " \
                        "-vnc :{vnc} " \
                        "-monitor tcp:127.0.0.1:1234,server,nowait,nodelay " \
                        "-qmp tcp:127.0.0.1:1235,server,nowait,nodelay " \
@@ -174,6 +199,7 @@ class Qemu(VM):
             qemu_exe=self.exe,
             sidecore=sidecore_param,
             kernel_additions=kernel_spicific_boot,
+            qemu_additionals=self.qemu_additionals,
             disk=self.path,
             tap=self.tap_device,
             vhost=vhost_param,
@@ -185,11 +211,18 @@ class Qemu(VM):
             mem=self.mem,
         )
         run_command_async(qemu_command)
+        sleep(0.5)
         if self.qemu_config:
-            sleep(0.5)
             self.change_qemu_parameters()
+        if self.is_io_thread_nice:
+            self.set_iothread_nice()
         sleep(1)
         self.qmp.connect()
+
+    def set_iothread_nice(self, nice=None):
+        if nice is None:
+            nice = self.io_nice
+        run_command_remote("127.0.0.1", "root", "renice -n {} -p {}".format(nice, self.get_pid()))
 
     def change_qemu_parameters(self, config=None):
         if config:
@@ -197,8 +230,6 @@ class Qemu(VM):
         if self.io_thread_cpu:
             command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
-        if self.io_thread_nice:
-                run_command_check("renice -n 2 -p {}".format(self.get_pid()))
 
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():
@@ -207,8 +238,11 @@ class Qemu(VM):
         self._signal_qemu()
 
     def get_pid(self):
+        if self._pid:
+            return self._pid
         with open(self.pidfile.name, "r") as f:
             pid = int(f.read().strip())
+        self._pid = pid
         return pid
 
     def _signal_qemu(self):
@@ -245,17 +279,123 @@ class QemuE1000Max(Qemu):
         }
         self.ethernet_dev = self.QEMU_E1000
         self.addiotional_guest_command = None
+        self.nic_additionals = ',pcix=true'
 
     def _configure_host(self):
-        run_command_check("echo 1 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
+        try:
+            run_command_check("echo 1 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
+        except CalledProcessError:
+            pass
 
     def _reset_host_configuration(self):
-        run_command_check("echo 0 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
+        try:
+            run_command_check("echo 0 | sudo tee /proc/sys/debug/tun/no_tcp_checksum_on", shell=True)
+        except CalledProcessError:
+            pass
 
     def configure_guest(self):
-        self.remote_command("echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on")
+        commands = (
+            "echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on",
+            "echo 1 | sudo tee /proc/sys/net/ipv4/tcp_srtt_patch",
+        )
+        for cmd in commands:
+            try:
+                self.remote_command(cmd)
+            except CalledProcessError:
+                pass
+
         if self.addiotional_guest_command:
             self.remote_command(self.addiotional_guest_command)
+
+
+class QemuLargeRing(QemuE1000Max):
+    def configure_guest(self):
+        super(QemuLargeRing, self).configure_guest()
+        self.remote_command("sudo ethtool -G eth0 rx 4096")
+        self.remote_command("sudo ethtool -G eth0 tx 4096")
+
+
+class QemuNG(Qemu):
+    QEMU_E1000_BETTER = 'e1000-82545em'
+    BOOTUP_WAIT = 7
+
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.e1000_options = dict()
+        self.large_queue = False
+        self.static_itr = False
+        self.queue_size = 0
+
+    def _run(self):
+        self.nic_additionals += "," + ",".join(("%s=%s" % (k, v) for k, v in self.e1000_options.items()))
+        super()._run()
+
+    def configure_guest(self):
+        super().configure_guest()
+        if self.large_queue:
+            self.remote_command("sudo ethtool -G eth0 rx {}".format(self.queue_size))
+            self.remote_command("sudo ethtool -G eth0 tx {}".format(self.queue_size))
+        if self.static_itr:
+            self.remote_command("sudo ethtool -C eth0 rx-usecs 4000")
+
+
+class QemuE1000NG(QemuNG):
+    def __init__(self, *args, **kargs):
+        super(QemuE1000NG, self).__init__(*args, **kargs)
+        self.e1000_options = {
+            "NG_no_checksum": "on",
+            "NG_no_tcp_seg": "on",
+            "NG_pcix": "on",
+            "NG_tx_iothread": "on",
+            "NG_vsend": "on",
+            "NG_tso_offloading": "on",
+            "NG_drop_packet": "off",
+            "NG_interrupt_mul": 10,  #1,  # 10
+            "NG_interrupt_mode": 0,  #1  # 0
+            "NG_parabatch": "off",
+        }
+
+        self.ethernet_dev = self.QEMU_E1000
+        # self.ethernet_dev = 'e1000-82545em'
+
+        self.addiotional_guest_command = None
+        self.is_io_thread_nice = False
+        self.io_nice = 5  # nice value to set
+        # self.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.13.9/arch/x86/boot/bzImage"
+        # self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.13.9-ng+"
+
+    def configure_guest(self):
+        super().configure_guest()
+        commands = (
+            "echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on", # old location
+            # "echo 1 | sudo tee /proc/sys/net/ipv4/tcp_srtt_patch", # new location
+            # "echo 1 | sudo tee /proc/sys/net/ipv4/tcp_srtt_patch", # new location
+        )
+        for cmd in commands:
+            try:
+                self.remote_command(cmd)
+            except CalledProcessError:
+                pass
+
+        if self.addiotional_guest_command:
+            self.remote_command(self.addiotional_guest_command)
+
+
+class QemuLargeRingNG(QemuE1000NG):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.ethernet_dev = 'e1000-82545em'
+        self.large_queue = True
+        self.static_itr = True
+
+
+class QemuVirtioNG(QemuNG):
+    def __init__(self):
+        super().__init__()
+        self.e1000_options = {
+            "NG_drop_packet": "on"
+        }
+        self.ethernet_dev = self.QEMU_VIRTIO
 
 
 class VMware(VM):

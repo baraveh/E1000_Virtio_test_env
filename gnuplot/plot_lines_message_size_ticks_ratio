@@ -24,20 +24,15 @@ if (exists("log_scale_x")){
 if (exists("log_scale_y")){
 	set logscale y log_scale_y
 } else {
-    set yrange [0:]
+    #set yrange [0:]
 }
 
 #set yrange [0:4096]
+set xzeroaxis lt -1
 
 columns_num = system("awk 'NR==1{print NF}' " . data_filename) #find the number of columns in the data file
 
-if (columns_num == 3){
-    plot \
-         data_filename using 1:2 with linespoints title col lt rgb "green", \
-         data_filename using 1:3 with linespoints title col lt rgb "red", \
-         data_filename using 1:2:(sprintf("%.1f", $2/$3)) with labels notitle
-} else {
-    plot for [i=2:columns_num] data_filename using 1:i with linespoints title col
-}
+plot for [i=3:columns_num] data_filename using 1:(log((column(i))/$2)) with linespoints title col lt (i-1)
+
 
 #plot x

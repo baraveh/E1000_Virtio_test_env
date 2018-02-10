@@ -14,13 +14,29 @@ class InterruptSensor(SensorBeforeAfter):
                 interrupts_match = re.search("^\s*\d+:\s+(\d+)\s*[a-zA-Z0-9_-]*\s+(eth0).*$",
                                              interrupts, re.MULTILINE
                                              )
-                interrupts_count = interrupts_match.group(1)
-                return int(interrupts_count)
-            elif vm.ethernet_dev == vm.QEMU_VIRTIO:
-                interrupts_count = re.search("^\s*\d+:\s+(\d+)\s*[a-zA-Z0-9_-]*\s+(virtio0-input.0).*$",
+                if interrupts_match:
+                    interrupts_count = interrupts_match.group(1)
+                    return int(interrupts_count)
+
+                interrupts_match = re.search("^\s*\d+:\s+(\d+)\s*[a-zA-Z0-9_-]*\s+[a-zA-Z0-9_-]*\s+(eth0).*$",
                                              interrupts, re.MULTILINE
-                                             ).group(1)
-                return int(interrupts_count)
+                                             )
+                if interrupts_match:
+                    interrupts_count = interrupts_match.group(1)
+                    return int(interrupts_count)
+                return 0
+            elif vm.ethernet_dev == vm.QEMU_VIRTIO:
+                interrupts_match = re.search("^\s*\d+:\s+(\d+)\s*[a-zA-Z0-9_-]*\s+(virtio0-input.0).*$",
+                                             interrupts, re.MULTILINE
+                                             )
+                if interrupts_match:
+                    return int(interrupts_match.group(1))
+                interrupts_match = re.search("^\s*\d+:\s+(\d+)\s*[a-zA-Z0-9_-]*\s*[a-zA-Z0-9_-]*\s+(virtio0-input.0).*$",
+                                             interrupts, re.MULTILINE
+                                             )
+                if interrupts_match:
+                    return int(interrupts_match.group(1))
+                return 0
             else:
                 raise NotImplementedError()
         else:

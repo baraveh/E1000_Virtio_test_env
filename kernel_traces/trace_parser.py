@@ -10,30 +10,45 @@ TRACE_END_MSG="NETPERF END"
 
 
 class Event:
-    def __init__(self, procname, cpuNum, flags, timestamp, event, info):
+    def __init__(self, procname, cpuNum, flags, timestamp, event, info, source=""):
         self.procname = procname
         self.cpuNum = cpuNum
         self.flags = flags
         self.timestamp = timestamp
         self.event = event
         self.info = info
+        self.source = source
+
+    def __str__(self):
+        return "{} {}: {}".format(self.timestamp, self.event, self.info)
 
     def __repr__(self):
-        return "{} {}: {}".format(self.timestamp, self.event, self.info)
+        return "{proc:>23} {cpu} {source}{flags} {timestamp} {name}: {info}".format(
+            proc=self.procname,
+            cpu=self.cpuNum,
+            source=self.source,
+            flags=self.flags,
+            timestamp=self.timestamp,
+            name=self.event,
+            info=self.info
+        )
 
 
 class TraceFile:
-    def __init__(self, filename):
+    def __init__(self, filename, source=""):
         self.filename = filename
         self.events = list()
         self.orig_events = list()
+        self.source = source
 
     def parse(self):
         with open(self.filename) as f:
             for line in f:
                 if line.startswith("#") or line.startswith("CPU:"):
                     continue
-                line_splitted = line.split()
+
+                procname = line[:24].strip()
+                line_splitted = [procname] + line[24:].split()
 
                 procname = line_splitted[0]
                 cpu_num = line_splitted[1]
@@ -41,14 +56,14 @@ class TraceFile:
                 timestamp = int(line_splitted[3].strip(":"))
                 event_name = line_splitted[4].strip(":")
                 info = " ".join(line_splitted[5:])
-                self.events.append(Event(procname, cpu_num, flags, timestamp, event_name, info))
+                self.events.append(Event(procname, cpu_num, flags, timestamp, event_name, info, source=self.source))
         self.orig_events = self.events[:]
 
 
 class Traces:
     def __init__(self, dir=DIR):
-        self.guest_traces = TraceFile(os.path.join(dir, "trace_guest"))
-        self.host_traces = TraceFile(os.path.join(dir, "trace_host"))
+        self.guest_traces = TraceFile(os.path.join(dir, "trace_guest"), source="g")
+        self.host_traces = TraceFile(os.path.join(dir, "trace_host"), source="h")
         self.tsc_offset = None
         self.events = list()
 
@@ -78,6 +93,17 @@ class Traces:
     def get_test_events(self):
         start, end = [n for n, e in enumerate(self.events) if e.event == 'tracing_mark_write']
         return self.events[start:end+1]
+
+    def write_to_file(self, filename, test_events_only=False):
+        if os.path.isdir(filename):
+            filename = os.path.join(filename, "merged_trace")
+        if test_events_only:
+            events = self.get_test_events()
+        else:
+            events = self.events
+        with open(filename, "w") as f:
+            for event in events:
+                f.write("{!r}\n".format(event))
 
 
 def virtio_kick_exits(events):

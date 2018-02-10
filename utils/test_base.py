@@ -1,5 +1,6 @@
 from time import sleep
 
+from utils.shell_utils import run_command_async, run_command_check
 from utils.vms import VM, Qemu
 from utils.sensors import Sensor
 import logging
@@ -10,7 +11,14 @@ logger.setLevel(logging.DEBUG)
 
 
 class TestBase:
-    def __init__(self, retries: int):
+    DIR = ""
+
+    def __init__(self, retries: int, directory=None):
+        self.dir = self.DIR
+        if directory:
+            self.dir = directory
+        assert self.dir
+
         self._retries = retries
 
         self._vms = self.get_vms()
@@ -22,13 +30,13 @@ class TestBase:
     def test_func(self, vm: VM, vm_name: str, x_value: int):
         raise NotImplementedError()
 
-    def get_vms(self): # -> list[(VM, str)]:
+    def get_vms(self):  # -> list[(VM, str)]:
         raise NotImplementedError()
 
-    def get_sensors(self): # -> list[Sensor]:
+    def get_sensors(self):  # -> list[Sensor]:
         raise NotImplementedError()
 
-    def get_x_categories(self): # -> list[(int, str)]:
+    def get_x_categories(self):  # -> list[(int, str)]:
         raise NotImplementedError()
 
     def pre_run(self):
@@ -48,9 +56,9 @@ class TestBase:
                             try:
                                 sensor.test_before(vm)
                             except:
-                                logger.error("Exception: ", exc_info=True)
+                                logger.error("Sensor Exception: ", exc_info=True)
 
-                        logger.info("Runing vm=%s, msg size=%s", vm_name, x_value_name)
+                        logger.info("Running vm=%s, msg size=%s", vm_name, x_value_name)
                         self.test_func(vm, vm_name, x_value)
 
                         for sensor in self._sensors:
@@ -70,10 +78,25 @@ class TestBase:
 
     def post_run(self):
         for sensor in self._sensors:
-            sensor.create_graph(self._retries)
+            try:
+                sensor.create_graph(self._retries)
+            except:
+                logger.exception("Failed to create graph %s", sensor)
 
 
-class TestBase2VM(TestBase):
+class TestBaseNetperf(TestBase):
+    NETPERF_CORE = '0'
+
+    def pre_run(self):
+        super().pre_run()
+        run_command_check("sudo taskset -c {} netserver".format(self.NETPERF_CORE))
+
+    def post_run(self):
+        run_command_check("sudo killall netserver")
+        super().post_run()
+
+
+class TestBase2VM(TestBaseNetperf):
     def get_vms(self): # -> list[(VM, VM, str)]
         raise NotImplementedError()
 
@@ -114,3 +137,4 @@ class TestBase2VM(TestBase):
                 vm2.teardown()
                 vm1.teardown()
                 sleep(10)
+

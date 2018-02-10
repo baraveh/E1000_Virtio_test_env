@@ -1,3 +1,4 @@
+import shutil
 from statistics import mean, stdev
 import itertools
 import logging
@@ -8,7 +9,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os.path
 
-from utils.shell_utils import run_command_check
+from utils.shell_utils import run_command_check, run_command
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -23,11 +24,13 @@ class GraphBase:
         self.y_label = y_label
         self.x_tics = ''
         self.log_scale_x = 2
+        self.log_scale_y = 1
         self.graph_title = graph_title
 
         self.output_filename = output_filename + ".pdf"
         self.data_filename = output_filename + ".txt"
         self.json_filename = output_filename + ".json"
+        self.png_filename = output_filename + ".png"
         self.data_filename2 = ""
 
         self.data = dict()
@@ -57,7 +60,7 @@ class GraphBase:
         raise NotImplementedError()
 
     def dump_to_json(self):
-        with open(self.json_filename + ".json", "w") as f:
+        with open(self.json_filename, "w") as f:
             json.dump(self.data, f)
 
     def create_graph(self, retries):
@@ -69,6 +72,14 @@ class GraphBase:
 
         raise NotImplementedError()
 
+    def convert2png(self):
+        """
+        convert pdf to png file
+        """
+        cmd = "convert -density 150 {pdf} -flatten -quality 90 {png}".format(pdf=self.output_filename,
+                                                                     png=self.png_filename)
+        run_command_check(cmd)
+
 
 class GraphGnuplot(GraphBase):
     def __init__(self, *args, **kargs):
@@ -76,6 +87,8 @@ class GraphGnuplot(GraphBase):
         self.script_filename = "gnuplot/plot_lines_message_size_ticks"
         assert isinstance(args[2], str)
         self.command_file = args[2] + ".command"
+        self.dir_name = os.path.dirname(self.output_filename)
+        self._real_script_filename = ''
 
     def set_x_tics(self, values, labels):
         super(GraphGnuplot, self).set_x_tics(values, labels)
@@ -84,8 +97,6 @@ class GraphGnuplot(GraphBase):
         for label, value in zip(labels, values):
             labels_tics.append(r'\"{}\"{}'.format(label, value))
 
-        #self.x_tics = "("
-        #self.x_tics += ")"
         self.x_tics = "({})".format(",".join(labels_tics))
 
     def create_data_file(self):
@@ -97,8 +108,38 @@ class GraphGnuplot(GraphBase):
             for x in sorted(self.data):
                 f.write("{} ".format(x))
                 for title in self.titles:
-                    f.write("{} ".format(mean((a for a in self.data[x][title]))))
+                    try:
+                        f.write("{} ".format(mean((a for a in self.data[x][title]))))
+                    except KeyError:
+                        f.write("0 ")
                 f.write("\n")
+
+    def copy_cmd_file(self):
+        self._real_script_filename = os.path.basename(self.script_filename)
+        shutil.copyfile(self.script_filename,
+                        os.path.join(self.dir_name, self._real_script_filename))
+
+    def create_makefile(self):
+        makefile_path = os.path.join(self.dir_name, "Makefile")
+        if not os.path.exists(makefile_path):
+            with open(makefile_path, "w") as f:
+                f.write("""
+COMMANDS:=$(wildcard *.command)
+PDFS:=$(patsubst %.command,%.pdf,$(COMMANDS))
+PNGS:=$(patsubst %.command,%.png,$(COMMANDS))
+
+all: $(PDFS) $(PNGS)
+\t@#-find -name '*.command' | xargs -l bash -x
+\t@#-find -name '*.pdf' | xargs -I {} bash -x -c "export F={} && convert -density 150 \$${F} -flatten -quality 90 \$${F%pdf}png"
+
+%.png: %.pdf
+\tconvert -density 150 $^ -flatten -quality 90 $@
+
+%.pdf: %.command
+\t@cat ./$*.command
+\tbash ./$*.command
+
+                """)
 
     def create_graph(self, retries):
         """
@@ -107,10 +148,14 @@ class GraphGnuplot(GraphBase):
         """
         self.create_data_file()
         self.dump_to_json()
+        self.copy_cmd_file()
+        self.create_makefile()
 
         addition = ""
         if self.log_scale_x > 1:
             addition = "log_scale_x='{log}'; ".format(log=self.log_scale_x)
+        if self.log_scale_y > 1:
+            addition += "log_scale_y='{log}'; ".format(log=self.log_scale_y)
 
         command = "gnuplot -e \"" \
                   "output_filename='{output}'; " \
@@ -124,18 +169,20 @@ class GraphGnuplot(GraphBase):
                   "\" " \
                   "{script}" \
                   "".format(
-                        output=self.output_filename,
-                        data=self.data_filename,
+                        output=os.path.basename(self.output_filename),
+                        data=os.path.basename(self.data_filename),
                         graph_title=self.graph_title,
                         y_label=self.y_label,
                         x_label=self.x_label,
                         x_tics=self.x_tics,
                         addition=addition,
-                        script=self.script_filename
+                        script=os.path.basename(self.script_filename)
                   )
         with open(self.command_file, "w") as f:
             f.write(command)
-        run_command_check(command)
+            f.write("\n")
+        run_command_check(command, cwd=self.dir_name)
+        self.convert2png()
 
 
 class GraphMatplotlib(GraphBase):
@@ -208,6 +255,7 @@ class GraphErrorBarsGnuplot(GraphGnuplot):
                     ))
                 f.write("\n")
 
+
 # set the default graph class
 Graph = GraphGnuplot
 
@@ -230,6 +278,25 @@ class RatioGraph(Graph):
     def create_graph(self, retries):
         self._calc_data()
         super(RatioGraph, self).create_graph(retries)
+
+
+class SameDataGraph(Graph):
+    def __init__(self, graph1: GraphBase, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.data_filename = graph1.data_filename
+        self.json_filename = graph1.json_filename
+
+    def dump_to_json(self):
+        pass
+
+    def create_data_file(self):
+        pass
+
+
+class GraphRatioGnuplot(SameDataGraph):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.script_filename = "gnuplot/plot_lines_message_size_ticks_ratio"
 
 
 if __name__ == "__main__":

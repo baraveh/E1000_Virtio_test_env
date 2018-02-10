@@ -10,12 +10,14 @@ from kernel_traces.trace_parser import Traces, TRACE_BEGIN_MSG, TRACE_END_MSG, d
 from sensors.netperf import NetPerfLatency, NetPerfTCP
 from utils.machine import localRoot
 from utils.shell_utils import run_command_async
-from utils.vms import Qemu, QemuE1000Max
+from utils.vms import Qemu, QemuE1000Max, QemuNG
 
-ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+# ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
-TMP_QEMU = r"/tmp/qemu-system-x86_64"
-Qemu.QEMU_EXE = TMP_QEMU
+ORIG_QEMU = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
+# TMP_QEMU = r"/tmp/qemu-system-x86_64"
+TMP_QEMU = ORIG_QEMU
+Qemu.QEMU_EXE = ORIG_QEMU
 
 TMP_DIR = r"/tmp/traces"
 
@@ -34,27 +36,33 @@ def get_dir(directory=None):
 def main(directory=None):
     trace_dir = get_dir(directory)
 
-    shutil.copyfile(ORIG_QEMU, TMP_QEMU)
+    if ORIG_QEMU != TMP_QEMU:
+        shutil.copyfile(ORIG_QEMU, TMP_QEMU)
     os.makedirs(trace_dir, exist_ok=True)
 
-    vm = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
-              guest_ip="10.10.0.43",
-              host_ip="10.10.0.44")
+    vm = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                guest_ip="10.10.0.43",
+                host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO
-    vm.qemu_config["latency_itr"] = 0
+    # vm.qemu_config["latency_itr"] = 0
     vm.BOOTUP_WAIT = 15
     # vm.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
 
     local_trace = Trace(localRoot, os.path.join(trace_dir, "trace_host"))
     local_trace.setup()
+    local_trace.set_buffer_size(100000)
 
-    # local_trace.enable_event("kvm/kvm_write_tsc_offset")
-    # local_trace.enable_event("kvm/kvm_exit")
-    # local_trace.enable_event("kvm/kvm_entry")
-    # local_trace.enable_event("kvm/kvm_userspace_exit")
+    local_trace.enable_event("kvm/kvm_write_tsc_offset")
+    local_trace.enable_event("kvm/kvm_set_irq")
+    local_trace.enable_event("kvm/kvm_msi_set_irq")
+    local_trace.enable_event("kvm/kvm_inj_virq")
+    local_trace.enable_event("kvm/kvm_ioapic_set_irq")
+    local_trace.enable_event("kvm/kvm_exit")
+    local_trace.enable_event("kvm/kvm_entry")
+    local_trace.enable_event("kvm/kvm_userspace_exit")
 
-    # local_trace.set_event_filter("sched/sched_switch", r'prev_comm ~ "*qemu*" || next_comm ~ "*qemu*"')
-    # local_trace.enable_event("sched/sched_switch")
+    local_trace.set_event_filter("sched/sched_switch", r'prev_comm ~ "*qemu*" || next_comm ~ "*qemu*"')
+    local_trace.enable_event("sched/sched_switch")
 
     # objdump -tT /tmp/qemu-system-x86_64 |grep .text|grep virtio_queue_notify_vq
     ## local_trace.uprobe_add("p:virtio_queue_notify_vq /tmp/qemu-system-x86_64:0x1bfba6")
@@ -62,10 +70,14 @@ def main(directory=None):
     # objdump -tT /tmp/qemu-system-x86_64 |grep .text|grep kvm_vcpu_ioctl
     ## local_trace.uprobe_add("p:kvm_vcpu_ioctl /tmp/qemu-system-x86_64:0x16a886 cmd=%si")
     # local_trace.uprobe_add_event("p", "kvm_vcpu_ioctl", TMP_QEMU, "kvm_vcpu_ioctl", "cmd=%si")
-    # local_trace.uprobe_enable()
+    local_trace.uprobe_add_event("p", "tap_send_packet", TMP_QEMU, "tap_write_packet")
+    local_trace.uprobe_add_event("p", "tap_recv_packets", TMP_QEMU, "tap_send")
+    # local_trace.uprobe_add_event("p", "e1000_set_kick", TMP_QEMU, "e1000_set_kick")
+    # local_trace.uprobe_add_event("p", "e1000_receive_batch_finished", TMP_QEMU, "e1000_receive_batch_finished")
+    local_trace.uprobe_enable()
 
-    # local_trace.empty_trace()
-    # local_trace.trace_on()
+    local_trace.empty_trace()
+    local_trace.trace_on()
     # local_trace.trace_to_local_file()
 
     vm.setup()
@@ -73,8 +85,13 @@ def main(directory=None):
 
     remote_trace = Trace(vm.root, os.path.join(trace_dir, "trace_guest"))
     remote_trace.setup()
-    remote_trace.set_buffer_size(20000)
+    remote_trace.set_buffer_size(100000)
     remote_trace.enable_event("tcp")
+    remote_trace.enable_event("net")
+    remote_trace.enable_event("irq")
+    remote_trace.enable_event("irq_vectors")
+    remote_trace.enable_event("napi")
+    remote_trace.enable_event("power/cpu_idle")
     # remote_trace.enable_event("power/cpu_idle")
     # remote_trace.enable_event("irq/irq_handler_entry")
     # remote_trace.enable_event("e1000/e1000_pre_mem_op")
@@ -103,12 +120,13 @@ def main(directory=None):
     print("Base Netperf performance: %s" % (netperf_perf,))
     logger.info("Base Netperf performance: %s", netperf_perf)
 
+    local_trace.read_trace_once(to_file=True)
     remote_trace.read_trace_once(to_file=True)
     # local_trace.trace_to_local_file_stop()
 
     local_trace.disable_all_events()
 
-    # input()
+    input("Press Enter to exit")
     vm.teardown()
 
 
@@ -119,7 +137,7 @@ def trace2csv(dirname):
 
     with open(os.path.join(dirname, "virtio-calling.csv"), "w") as csvfile:
         csvwritter = csv.writer(csvfile)
-        csvwritter.writerow(("timestamp", "cwnd", "inflight", "mss_now", "pacing_rate"))
+        csvwritter.writerow(("timestamp", "cwnd", "inflight", "mss_now", "pacing_rate", "sk_wmem_alloc"))
 
         for event in traces.events[start:end+1]:
             if event.event == "tcp_send_info":
@@ -163,6 +181,9 @@ def startup():
 
     main(d)
     trace2csv(d)
+
+    t = Traces(d)
+    t.write_to_file(d, True)
 
 
 if __name__ == "__main__":

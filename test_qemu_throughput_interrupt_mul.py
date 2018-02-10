@@ -5,7 +5,7 @@ from sensors.packet_num import PacketNumberSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
 from utils.sensors import DummySensor
-from utils.test_base import TestBase
+from utils.test_base import TestBase, TestBaseNetperf
 from utils.vms import Qemu, VM, QemuE1000Max
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
@@ -26,7 +26,7 @@ class QemuLargeRing(QemuE1000Max):
         self.remote_command("sudo ethtool -G eth0 tx 4096")
 
 
-class QemuRegularTest(TestBase):
+class QemuRegularTest(TestBaseNetperf):
     DIR = r"/home/bdaviv/tmp/results"
 
     def __init__(self, netperf_runtime, *args, **kargs):

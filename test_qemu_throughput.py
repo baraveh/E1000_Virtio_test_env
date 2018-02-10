@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from sensors.cpu import get_all_cpu_sensors
 from sensors.interrupts import InterruptSensor
 from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
@@ -5,10 +7,10 @@ from sensors.packet_num import PacketNumberSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
 from utils.sensors import DummySensor
-from utils.test_base import TestBase
-from utils.vms import Qemu, VM, QemuE1000Max
-from sensors.netperf import NetPerfTCP
-from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
+from utils.test_base import TestBase, TestBaseNetperf
+from utils.vms import Qemu, VM, QemuE1000Max, QemuE1000NG, QemuLargeRingNG, QemuLargeRing, QemuNG
+from sensors.netperf import NetPerfTCP, NetPerfTcpTSO
+from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph, GraphRatioGnuplot
 
 from os import path
 
@@ -19,124 +21,133 @@ from os import path
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 Qemu.QEMU_EXE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
 
-class QemuLargeRing(QemuE1000Max):
-    def configure_guest(self):
-        super(QemuLargeRing, self).configure_guest()
-        self.remote_command("sudo ethtool -G eth0 rx 4096")
-        self.remote_command("sudo ethtool -G eth0 tx 4096")
 
-
-class QemuRegularTest(TestBase):
+class QemuThroughputTest(TestBaseNetperf):
     DIR = r"/home/bdaviv/tmp/results"
+    NETPERF_CLS = NetPerfTCP
 
     def __init__(self, netperf_runtime, *args, **kargs):
         self.netperf_runtime = netperf_runtime
-        super(QemuRegularTest, self).__init__(*args, **kargs)
+        self.netperf = None
+        super().__init__(*args, **kargs)
         # self._stop_after_test = True
 
     def get_x_categories(self):
         return [
             (64, "64"),
-            # (128, "128"),
+            (128, "128"),
             (256, "256"),
-            # (512, "512"),
+            (512, "512"),
             (1 * 2 ** 10, "1K"),
-            # (2 * 2 ** 10, "2K"),
+            (2 * 2 ** 10, "2K"),
             (4 * 2 ** 10, "4K"),
-            # (8 * 2 ** 10, "8K"),
+            (8 * 2 ** 10, "8K"),
             (16 * 2 ** 10, "16K"),
-            # (32 * 2 ** 10, "32K"),
+            (32 * 2 ** 10, "32K"),
             (64 * 2 ** 10, "64K"),
         ]
 
     def get_sensors(self):
-        netperf_graph = GraphErrorBarsGnuplot("msg size", "throughput",
-                                              path.join(self.DIR, "throughput"),
-                                              graph_title="Throughput")
-        self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
+        netperf_graph = Graph("msg size",
+                              "Throughput (Mb/s)",
+                              path.join(self.dir, "throughput"),
+                              graph_title="throughput (%s sec)" % (self.netperf_runtime,))
+        self.netperf = self.NETPERF_CLS(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
         #     Graph("msg size", "packet number", r"/home/bdaviv/tmp/packet_num.pdf", r"/home/bdaviv/tmp/packet_num.txt"),
         #     Graph("msg size", "average packet size", r"/home/bdaviv/tmp/packet_size.pdf", r"/home/bdaviv/tmp/packet_size.txt")
         # )
+        netperf_graph_ratio = DummySensor(
+            GraphRatioGnuplot(
+                netperf_graph,
+                "msg size",
+                "Throughput (log ratio to first)",
+                path.join(self.dir, "throughput-ratio"),
+                graph_title="throughput (%s sec)" % (self.netperf_runtime,)
+            )
+        )
 
         packet_sensor_tx_bytes = PacketRxBytesSensor(
-            Graph("msg size", "Total TX size",
-                  path.join(self.DIR, "throughput-tx_bytes"),
-                  normalize=self.netperf_runtime
+            Graph("msg size", "TX size per second (Mb)",
+                  path.join(self.dir, "throughput-tx_bytes"),
+                  normalize=self.netperf_runtime*1000*1000/8
                   )
         )
         packet_sensor_tx_packets = PacketRxPacketsSensor(
             Graph("msg size", "Total TX packets",
-                  path.join(self.DIR, "throughput-tx_packets"),
+                  path.join(self.dir, "throughput-tx_packets"),
                   normalize=self.netperf_runtime)
         )
 
         packet_sensor_avg_size = DummySensor(
             RatioGraph(packet_sensor_tx_bytes.graph, packet_sensor_tx_packets.graph,
-                       "msg size", "TX Packet Size",
-                       path.join(self.DIR, "throughput-tx_packet_size")
+                       "msg size", "TX Packet Size (KB)",
+                       path.join(self.dir, "throughput-tx_packet_size"),
+                       normalize=8 * 0.001
                        )
         )
 
         interrupt_sensor = InterruptSensor(
             Graph("msg size", "interrupt count (per sec)",
-                  path.join(self.DIR, "throughput-interrupts"),
+                  path.join(self.dir, "throughput-interrupts"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits = KvmExitsSensor(
             Graph("msg size", "exits count (per sec)",
-                  path.join(self.DIR, "throughput-kvm_exits"),
+                  path.join(self.dir, "throughput-kvm_exits"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits_ratio = DummySensor(
             RatioGraph(kvm_exits.graph, packet_sensor_tx_packets.graph,
                        "msg size", "Exits per Packet",
-                       path.join(self.DIR, "throughput-kvm_exits-ratio")
+                       path.join(self.dir, "throughput-kvm_exits-ratio")
                        )
         )
 
         interrupt_ratio = DummySensor(
             RatioGraph(interrupt_sensor.graph, packet_sensor_tx_packets.graph,
                        "msg size", "Interrupts per Packet",
-                       path.join(self.DIR, "throughput-interrupts-ratio")
+                       path.join(self.dir, "throughput-interrupts-ratio")
                        )
         )
 
         kvm_halt_exits = KvmHaltExitsSensor(
-            GraphErrorBarsGnuplot("msg size", "Halt exits count (per sec)",
-                                  path.join(self.DIR, "throughput-kvm_halt_exits"),
+            Graph("msg size", "Halt exits count (per sec)",
+                                  path.join(self.dir, "throughput-kvm_halt_exits"),
                                   normalize=self.netperf_runtime)
         )
 
         batch_size = QemuBatchSizeSensor(
             Graph("msg size", "Average batch size (in packets)",
-                  path.join(self.DIR, "throughput-batch_size"))
+                  path.join(self.dir, "throughput-batch_size"))
         )
 
         batch_descriptos_size = QemuBatchDescriptorsSizeSensor(
             Graph("msg size", "Average batch size (in descriptors)",
-                  path.join(self.DIR, "throughput-batch_descriptors_size"))
+                  path.join(self.dir, "throughput-batch_descriptors_size"))
         )
 
         batch_count = QemuBatchCountSensor(
             Graph("msg size", "Average batch Count (per Sec)",
-                  path.join(self.DIR, "throughput-batch_count"),
+                  path.join(self.dir, "throughput-batch_count"),
                   normalize=self.netperf_runtime)
         )
 
         batch_halt_ratio = DummySensor(
             RatioGraph(batch_count.graph, kvm_halt_exits.graph,
                        "msg size", "batch count / kvm halt",
-                       path.join(self.DIR, "throughtput-batchCount_kvmHalt"))
+                       path.join(self.dir, "throughput-batchCount_kvmHalt"))
         )
+        batch_halt_ratio.graph.log_scale_y = 2
 
-        cpu_sensors = get_all_cpu_sensors(self.DIR, "throughput", self.netperf_runtime)
+        cpu_sensors = get_all_cpu_sensors(self.dir, "throughput", self.netperf_runtime)
 
         return [
                    self.netperf,
+                   netperf_graph_ratio,
                    packet_sensor_tx_bytes,
                    packet_sensor_tx_packets,
                    packet_sensor_avg_size,
@@ -157,10 +168,21 @@ class QemuRegularTest(TestBase):
                ] + cpu_sensors
 
     def get_vms(self):
+        qemu_e1000e = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                           guest_ip="10.10.0.43",
+                           host_ip="10.10.0.44")
+        qemu_e1000e.ethernet_dev = "e1000e"
+
         qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
+
+        qemu_virtio_drop_packets = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                           guest_ip="10.10.0.43",
+                           host_ip="10.10.0.44")
+        qemu_virtio_drop_packets.ethernet_dev = Qemu.QEMU_VIRTIO
+        qemu_virtio_drop_packets.e1000_options["NG_drop_packet"] = "on"
 
         qemu_virtio_latency = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                                    guest_ip="10.10.0.43",
@@ -282,12 +304,45 @@ class QemuRegularTest(TestBase):
             "zero_copy_on": 1,
         }
 
+        qemu_ng_max = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                  guest_ip="10.10.0.43",
+                                  host_ip="10.10.0.44")
+
+        qemu_large_ring_ng = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                             guest_ip="10.10.0.43",
+                                             host_ip="10.10.0.44")
+
+        qemu_ng_max_nocsum = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                         guest_ip="10.10.0.43",
+                                         host_ip="10.10.0.44")
+        qemu_ng_max_nocsum.e1000_options["NG_no_checksum"] = "off"
+
+        qemu_large_ring_ng_nocsum = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                                    guest_ip="10.10.0.43",
+                                                    host_ip="10.10.0.44")
+        qemu_large_ring_ng_nocsum.e1000_options["NG_no_checksum"] = "off"
+        qemu_virtio_nice = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                           guest_ip="10.10.0.43",
+                           host_ip="10.10.0.44")
+        qemu_virtio_nice.ethernet_dev = Qemu.QEMU_VIRTIO
+        qemu_virtio_nice.is_io_thread_nice = True
+        qemu_virtio_nice.io_nice = 5
+
+        qemu_large_ring_ng_tso_offload = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                             guest_ip="10.10.0.43",
+                                             host_ip="10.10.0.44")
+        qemu_large_ring_ng_tso_offload.e1000_options["NG_tso_offloading"] = "on"
+
         return [
-                (qemu_virtio, "virtio-net_baseline"),
+                # (qemu_virtio, "virtio-net_baseline"),
+                (qemu_virtio_drop_packets, "qemu_virtio_drop_packets"),
+            # (qemu_e1000e, "qemu_e1000e"),
             # (qemu_virtio_latency, "virito-net_smart_latency"), # working?
+            # (qemu_virtio_nice, "qemu_virtio_nice"),
+
             # (qemu_e1000_no_new_improv, "qemu_e1000_no_new_improv"),
 
-            (qemu_e1000_baseline, "e1000_baseline"),
+            # (qemu_e1000_baseline, "e1000_baseline"),
             # (qemu_e1000_newest, "qemu_e1000_newest"),
 
                 # (qemu_e1000_arthur, "e1000_10x_arthur"),
@@ -306,14 +361,40 @@ class QemuRegularTest(TestBase):
             # (qemu_e1000_best_itr, "qemu_e1000_best_itr"),
             # (self.qemu_virtio_1g, "qemu_virtio_1G"),
             # (self.qemu_e1000_1g, "qemu_e1000_1G"),
+            # (qemu_ng_max, "qemu_ng_max"),
+            (qemu_large_ring_ng, "qemu_large_ring_ng"),
+            # (qemu_ng_max_nocsum, "qemu_ng_max_nocsum"),
+            # (qemu_large_ring_ng_nocsum, "qemu_large_ring_ng_nocsum"),
+            # (qemu_large_ring_ng_tso_offload, "qemu_large_ring_ng_tso_offload"),
         ]
 
     def test_func(self, vm: VM, vm_name: str, x_value: int):
         self.netperf.run_netperf(vm, vm_name, x_value, msg_size=x_value)
 
 
+class TestCmpThroughput(QemuThroughputTest):
+    def __init__(self, vms, *args, **kargs):
+        self._test_vms = vms
+        super().__init__(*args, **kargs)
+
+    def get_vms(self):
+        assert len({vm.name for vm in self._test_vms}) == len(self._test_vms)
+        return [(deepcopy(vm), vm.name) for vm in self._test_vms]
+
+
+class TestCmpThroughputTSO(TestCmpThroughput):
+    NETPERF_CLS = NetPerfTcpTSO
+
+    def __init__(self, *args, additional_x=None, **kargs):
+        super().__init__(*args, **kargs)
+        if additional_x:
+            self._x_categories += additional_x
+
+
 if __name__ == "__main__":
-    test = QemuRegularTest(15, retries=1)
+    test = QemuThroughputTest(15, retries=1)
     test.pre_run()
     test.run()
     test.post_run()
+
+

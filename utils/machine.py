@@ -15,5 +15,8 @@ class Machine:
     def remote_command_ex(self, command):
         return run_command_remote_ex(self._remote_ip, self._user, command)
 
+    def remote_root_command(self, command, **kargs):
+        return run_command_remote(self._remote_ip, "root", command, **kargs)
+
 
 localRoot = Machine("127.0.0.1", "root")

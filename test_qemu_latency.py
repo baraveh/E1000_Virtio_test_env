@@ -10,7 +10,7 @@ from utils.graphs import Graph, RatioGraph, GraphErrorBarsGnuplot
 from utils.sensors import DummySensor
 
 
-class LatencyTest(test_qemu_throughput.QemuRegularTest):
+class LatencyTest(test_qemu_throughput.QemuThroughputTest):
     # def get_msg_sizes(self):
     #     return [(1, "1")]
 
@@ -35,7 +35,7 @@ class LatencyTest(test_qemu_throughput.QemuRegularTest):
         self.netperf = netperf.NetPerfLatency(
             GraphErrorBarsGnuplot("Message size [bytes]", "Transactions/Sec",
                                   path.join(self.DIR, "latency"),
-                                  graph_title="Latency"),
+                                  graph_title="Latency(%s sec)" % (self.netperf_runtime,)),
             runtime=self.netperf_runtime
         )
         # self.netperf.graph.script_filename = "gnuplot/plot_columns_latency"
@@ -73,9 +73,10 @@ class LatencyTest(test_qemu_throughput.QemuRegularTest):
         )
 
         packet_sensor_tx_bytes = PacketRxBytesSensor(
-            Graph("msg size", "Total TX size",
+            Graph("msg size", "Total TX size(Mb)",
                   path.join(self.DIR, "latency-tx_bytes"),
-                  normalize=self.netperf_runtime)
+                  normalize=self.netperf_runtime * 1000 * 1000 / 8
+                  )
         )
         packet_sensor_tx_packets = PacketRxPacketsSensor(
             Graph("msg size", "Total TX packets",
@@ -85,8 +86,11 @@ class LatencyTest(test_qemu_throughput.QemuRegularTest):
 
         packet_sensor_avg_size = DummySensor(
             RatioGraph(packet_sensor_tx_bytes.graph, packet_sensor_tx_packets.graph,
-                       "msg size", "TX Packet Size",
-                       path.join(self.DIR, "latency-tx_packet-size")))
+                       "msg size", "TX Packet Size (KB)",
+                       path.join(self.DIR, "latency-tx_packet-size"),
+                       normalize=8 * 0.001
+                       )
+        )
 
         interrupt_ratio = DummySensor(
             RatioGraph(interrupt_sensor.graph, self.netperf.graph,
