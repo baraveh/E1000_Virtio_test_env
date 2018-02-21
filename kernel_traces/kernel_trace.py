@@ -31,6 +31,7 @@ class Trace:
         return key
 
     def write_value(self, key, value, append=False):
+        print(repr(value))
         command = "echo {value} {redirect} {key_path}".format(
             value=value,
             key_path=os.path.join(self.TRACE_DIR, self._key2path(key)),

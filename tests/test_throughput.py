@@ -14,7 +14,7 @@ from test_qemu_throughput import TestCmpThroughput
 RUNTIME = 8
 # RUNTIME = 15
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-results-cork"
+BASE_DIR = r"/home/bdaviv/tmp/results/test-results"
 
 OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
 OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
@@ -34,9 +34,26 @@ def create_vms():
     virtio.ethernet_dev = virtio.QEMU_VIRTIO
     virtio.name = "virtio"
 
+    virtio_batch = deepcopy(virtio)
+    virtio_batch.name = "virtio_batch"
+    virtio_batch.e1000_options["NG_notify_batch"] = "on"
+
     virtio_drop = deepcopy(virtio)
     virtio_drop.name = "virtio_drop"
     virtio_drop.e1000_options["NG_drop_packet"] = "on"
+
+    e1000_best_3_13 = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                             guest_ip="10.10.0.43",
+                             host_ip="10.10.0.44")
+    e1000_best_3_13.name = "E1000-best"
+    e1000_best_3_13.is_io_thread_nice = False
+    e1000_best_3_13.kernel = OLD_KERNEL
+    e1000_best_3_13.initrd = OLD_INITRD
+
+    e1000_best_interrupt_3_13 = deepcopy(e1000_best_3_13)
+    e1000_best_interrupt_3_13.name = "E1000-Arthur_interrupt-3.13"
+    e1000_best_interrupt_3_13.e1000_options["NG_interrupt_mul"] = 10
+    e1000_best_interrupt_3_13.e1000_options["NG_interrupt_mode"] = 0
 
     e1000_best_interrupt = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                              guest_ip="10.10.0.43",
@@ -49,6 +66,15 @@ def create_vms():
     e1000_best_interrupt.e1000_options["NG_interrupt_mode"] = 0
     e1000_best_interrupt.bootwait = 10
 
+    e1000_tso_offloading = deepcopy(e1000_best_interrupt)
+    e1000_tso_offloading.e1000_options["NG_tso_offloading"] = "on"
+
+    e1000_batch_interrupt = deepcopy(e1000_best_interrupt)
+    e1000_batch_interrupt.name = "e1000-batch_itr"
+    e1000_batch_interrupt.e1000_options["NG_interrupt_mul"] = 1
+    e1000_batch_interrupt.e1000_options["NG_interrupt_mode"] = 1
+    e1000_batch_interrupt.e1000_options["NG_parabatch"] = "on"
+
     e1000_best_lq = deepcopy(e1000_best_interrupt)
     e1000_best_lq.name = "e1000-int_mul-largeQ"
     e1000_best_lq.large_queue = True
@@ -58,23 +84,33 @@ def create_vms():
     e1000_skb_orphan.kernel_cmdline_additional = "e1000.NG_flags=1"
     e1000_skb_orphan.name = "E1000-skb_orphan"
 
-    base_vms = (
+    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                                guest_ip="10.10.0.43",
+                                host_ip="10.10.0.44")
+    e1000_arthur.kernel = OLD_KERNEL
+    e1000_arthur.initrd = OLD_INITRD
+    e1000_arthur.exe = OLD_QEMU
+    e1000_arthur.nic_additionals = ''
+    e1000_arthur.qemu_additionals = '-enable-e1000-pcix'
+    e1000_arthur.name = "E1000-Arthur-old"
+    e1000_arthur.qemu_config["drop_packet_every"] = 8000
+    e1000_arthur.qemu_config["drop_packet_every_avg_packet_size_min"] = 25000
+    e1000_arthur.qemu_config["drop_packet_every_avg_packet_size_max"] = 60000
+
+    return (
         # e1000_baseline,
         virtio,
+        virtio_batch,
         # virtio_drop,
-        e1000_best_interrupt,
-        # e1000_best_lq,
+        # e1000_best_3_13,
+        # e1000_best_interrupt_3_13,
+        # e1000_best_interrupt,
         e1000_skb_orphan
+        # e1000_batch_interrupt,
+        # e1000_best_lq
+        # e1000_tso_offloading,
+        # e1000_arthur,
     )
-
-    cork_vms = list()
-    for vm in base_vms:
-        cork_vm = deepcopy(vm)
-        cork_vm.name += "_cork"
-        cork_vm.netperf_test_params = "-C"
-        cork_vms.append(cork_vm)
-
-    return list(base_vms) + cork_vms
 
 
 if __name__ == "__main__":

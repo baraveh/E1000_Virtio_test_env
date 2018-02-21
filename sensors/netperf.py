@@ -1,10 +1,21 @@
 import logging
 
 from utils.sensors import Sensor
+from utils.shell_utils import run_command_check, run_command
 from utils.vms import VM
 from utils.graphs import Graph
 
 logger = logging.getLogger(__name__)
+
+NETPERF_CORE = 3
+
+
+def netserver_start(core = NETPERF_CORE):
+    run_command("sudo taskset -c {} netserver".format(core))
+
+
+def netserver_stop():
+    run_command("sudo killall netserver")
 
 
 class NetPerf(Sensor):

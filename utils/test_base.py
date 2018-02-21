@@ -1,5 +1,6 @@
 from time import sleep
 
+from sensors.netperf import netserver_start, netserver_stop
 from utils.shell_utils import run_command_async, run_command_check
 from utils.vms import VM, Qemu
 from utils.sensors import Sensor
@@ -89,10 +90,10 @@ class TestBaseNetperf(TestBase):
 
     def pre_run(self):
         super().pre_run()
-        run_command_check("sudo taskset -c {} netserver".format(self.NETPERF_CORE))
+        netserver_start(self.NETPERF_CORE)
 
     def post_run(self):
-        run_command_check("sudo killall netserver")
+        netserver_stop()
         super().post_run()
 
 

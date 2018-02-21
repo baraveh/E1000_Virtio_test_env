@@ -10,7 +10,7 @@ from utils.sensors import DummySensor
 from utils.test_base import TestBase, TestBaseNetperf
 from utils.vms import Qemu, VM, QemuE1000Max, QemuE1000NG, QemuLargeRingNG, QemuLargeRing, QemuNG
 from sensors.netperf import NetPerfTCP, NetPerfTcpTSO
-from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph, GraphRatioGnuplot
+from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph, GraphRatioGnuplot, GraphScatter
 
 from os import path
 
@@ -145,6 +145,12 @@ class QemuThroughputTest(TestBaseNetperf):
 
         cpu_sensors = get_all_cpu_sensors(self.dir, "throughput", self.netperf_runtime)
 
+        throughput2segment_size = DummySensor(
+            GraphScatter(packet_sensor_avg_size.graph, netperf_graph,
+                         "sent segment size (KB)", "Throughput",
+                         path.join(self.dir, "throughput-segment_throughput"))
+        )
+
         return [
                    self.netperf,
                    netperf_graph_ratio,
@@ -164,6 +170,8 @@ class QemuThroughputTest(TestBaseNetperf):
                    batch_descriptos_size,
                    batch_count,
                    batch_halt_ratio,
+
+                   throughput2segment_size,
 
                ] + cpu_sensors
 

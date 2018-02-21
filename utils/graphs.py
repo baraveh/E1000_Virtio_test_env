@@ -141,6 +141,9 @@ all: $(PDFS) $(PNGS)
 
                 """)
 
+    def _calc_additional_params(self):
+        return ''
+
     def create_graph(self, retries):
         """
         write data to file
@@ -151,9 +154,9 @@ all: $(PDFS) $(PNGS)
         self.copy_cmd_file()
         self.create_makefile()
 
-        addition = ""
+        addition = self._calc_additional_params()
         if self.log_scale_x > 1:
-            addition = "log_scale_x='{log}'; ".format(log=self.log_scale_x)
+            addition += "log_scale_x='{log}'; ".format(log=self.log_scale_x)
         if self.log_scale_y > 1:
             addition += "log_scale_y='{log}'; ".format(log=self.log_scale_y)
 
@@ -260,29 +263,35 @@ class GraphErrorBarsGnuplot(GraphGnuplot):
 Graph = GraphGnuplot
 
 
-class RatioGraph(Graph):
-    """
-    create graph with ratio between two different graphs
-    """
+class MultipleGraphs(Graph):
     def __init__(self, graph1: GraphBase, graph2: GraphBase, *args, **kargs):
-        super(RatioGraph, self).__init__(*args, **kargs)
+        super().__init__(*args, **kargs)
         self.graph1 = graph1
         self.graph2 = graph2
 
+    def _calc_data(self):
+        raise NotImplementedError()
+
+    def create_graph(self, *args, **kargs):
+        self._calc_data()
+        super().create_graph(*args, **kargs)
+
+
+class RatioGraph(MultipleGraphs):
+    """
+    create graph with ratio between two different graphs
+    """
     def _calc_data(self):
         for x in self.graph1.data.keys():
             for title in self.graph1.data[x].keys():
                 for val1, val2 in zip(self.graph1.data[x][title], self.graph2.data[x][title]):
                     self.add_data(title, x, val1 / val2)
 
-    def create_graph(self, retries):
-        self._calc_data()
-        super(RatioGraph, self).create_graph(retries)
-
 
 class SameDataGraph(Graph):
     def __init__(self, graph1: GraphBase, *args, **kargs):
         super().__init__(*args, **kargs)
+        self._graph1 = graph1
         self.data_filename = graph1.data_filename
         self.json_filename = graph1.json_filename
 
@@ -297,6 +306,37 @@ class GraphRatioGnuplot(SameDataGraph):
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
         self.script_filename = "gnuplot/plot_lines_message_size_ticks_ratio"
+        self.log_scale_y = 2
+
+
+class GraphScatter(MultipleGraphs):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.script_filename = "gnuplot/plot_scatter"
+        self._scatter_data = dict()  # different from data, dict[title] = list(x,y)
+
+    def add_data(self, title, x, value):
+        super().add_data(title, x, value)
+        if title not in self._scatter_data:
+            self._scatter_data[title] = list()
+        self._scatter_data[title].append((x,value))
+
+    def _calc_data(self):
+        for x in self.graph1.data.keys():
+            for title in self.graph1.data[x].keys():
+                for val1, val2 in zip(self.graph1.data[x][title], self.graph2.data[x][title]):
+                    self.add_data(title, val1, val2)
+
+    def create_data_file(self):
+        with open(self.data_filename, "w") as f:
+            for title in self._scatter_data:
+                f.write("title {}\n".format(title))
+                for x, y in self._scatter_data[title]:
+                    f.write("{} {}\n".format(x, y))
+                f.write("\n\n")
+
+    def _calc_additional_params(self):
+        return "blocks_num='{blocks}'; ".format(blocks=len(self.titles))
 
 
 if __name__ == "__main__":
