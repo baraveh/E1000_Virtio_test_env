@@ -7,7 +7,7 @@ from math import log2
 
 from kernel_traces.kernel_trace import Trace
 from kernel_traces.trace_parser import Traces, TRACE_BEGIN_MSG, TRACE_END_MSG, delta2time, TraceFile
-from sensors.netperf import NetPerfLatency, NetPerfTCP
+from sensors.netperf import NetPerfLatency, NetPerfTCP, netserver_start, netserver_stop
 from utils.machine import localRoot
 from utils.shell_utils import run_command_async
 from utils.vms import Qemu, QemuE1000Max, QemuE1000NG, QemuLargeRingNG
@@ -22,8 +22,8 @@ Qemu.QEMU_EXE = TMP_QEMU
 
 TMP_DIR = r"/tmp/traces"
 
-MSG_SIZE = "64K"
-MSG_SIZE = "64"
+MSG_SIZE = "16K"
+# MSG_SIZE = "64"
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -51,11 +51,16 @@ def main(directory=None):
         shutil.copyfile(ORIG_QEMU, TMP_QEMU)
     os.makedirs(trace_dir, exist_ok=True)
 
+    netserver_start()
     vm = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                      guest_ip="10.10.0.43",
                      host_ip="10.10.0.44")
-    vm.netperf_test_params = "-C"
-    # vm.e1000_options["NG_parabatch"] = "on"
+    # vm.netperf_test_params = "-C"
+    vm.kernel_cmdline_additional = "e1000.NG_flags=1"
+    vm.e1000_options["NG_interrupt_mode"] = 2
+    # vm.large_queue = True
+    # vm.queue_size = 1024*4
+    vm.e1000_options["NG_parabatch"] = "on"
     # vm.e1000_options["NG_interrupt_mode"] = 1
     # vm.e1000_options["NG_interrupt_mul"] = 1
 
@@ -68,6 +73,9 @@ def main(directory=None):
 
     local_trace.enable_event("kvm/kvm_write_tsc_offset")
     local_trace.enable_event("kvm/kvm_set_irq")
+    local_trace.enable_event("kvm/kvm_msi_set_irq")
+    local_trace.enable_event("kvm/kvm_inj_virq")
+    local_trace.enable_event("kvm/kvm_ioapic_set_irq")
     local_trace.enable_event("kvm/kvm_exit")
     local_trace.enable_event("kvm/kvm_entry")
     local_trace.enable_event("kvm/kvm_userspace_exit")
@@ -83,7 +91,13 @@ def main(directory=None):
     # local_trace.uprobe_add_event("p", "kvm_vcpu_ioctl", TMP_QEMU, "kvm_vcpu_ioctl", "cmd=%si")
     local_trace.uprobe_add_event("p", "tap_write_packet", TMP_QEMU, "tap_write_packet")
     local_trace.uprobe_add_event("p", "e1000_set_kick", TMP_QEMU, "e1000_set_kick")
-    local_trace.uprobe_add_event("p", "e1000_receive_batch_finished", TMP_QEMU, "e1000_receive_batch_finished")
+    local_trace.uprobe_add_event("p", "e1000_receive_batch_finished", TMP_QEMU, "e1000_receive_batch_finished",
+                                 "packets=%si interrupt_packets=+209052\(%di):u32")
+    local_trace.uprobe_add_event("r", "tap_recv_packets_end", TMP_QEMU, "tap_send")
+    local_trace.uprobe_add_event("p", "tap_recv_packets", TMP_QEMU, "tap_send")
+
+    local_trace.uprobe_add_event("r", "all_cpu_idle_end", TMP_QEMU, "all_cpu_threads_idle_ex", misc=r"result=\$retval")
+    local_trace.uprobe_add_event("p", "all_cpu_idle", TMP_QEMU, "all_cpu_threads_idle_ex")
     # local_trace.uprobe_add_event("p", "e1000_mmio_write", TMP_QEMU, "e1000_mmio_write")
     local_trace.uprobe_enable()
 
@@ -103,6 +117,8 @@ def main(directory=None):
     remote_trace.enable_event("irq_vectors")
     remote_trace.enable_event("napi")
     remote_trace.enable_event("power/cpu_idle")
+    remote_trace.enable_event("syscalls/sys_enter_sendto")
+    remote_trace.enable_event("syscalls/sys_enter_recvfrom")
     # remote_trace.enable_event("irq/irq_handler_entry")
     # remote_trace.enable_event("e1000/e1000_pre_mem_op")
     # remote_trace.enable_event("e1000/e1000_post_mem_op")
@@ -147,6 +163,7 @@ def main(directory=None):
     local_trace.disable_all_events()
 
     vm.teardown()
+    netserver_stop()
 
 
 def trace2csv(dirname):

@@ -12,7 +12,7 @@ from utils.vms import QemuNG, Qemu, QemuE1000Max, QemuE1000NG
 from test_qemu_throughput import TestCmpThroughput
 
 RUNTIME = 8
-# RUNTIME = 15
+# RUNTIME = 30
 RETRIES = 1
 BASE_DIR = r"/home/bdaviv/tmp/results/test-results"
 
@@ -73,7 +73,7 @@ def create_vms():
     e1000_batch_interrupt.name = "e1000-batch_itr"
     e1000_batch_interrupt.e1000_options["NG_interrupt_mul"] = 1
     e1000_batch_interrupt.e1000_options["NG_interrupt_mode"] = 1
-    e1000_batch_interrupt.e1000_options["NG_parabatch"] = "on"
+    # e1000_batch_interrupt.e1000_options["NG_parabatch"] = "on"
 
     e1000_best_lq = deepcopy(e1000_best_interrupt)
     e1000_best_lq.name = "e1000-int_mul-largeQ"
@@ -83,6 +83,11 @@ def create_vms():
     e1000_skb_orphan = deepcopy(e1000_best_interrupt)
     e1000_skb_orphan.kernel_cmdline_additional = "e1000.NG_flags=1"
     e1000_skb_orphan.name = "E1000-skb_orphan"
+
+    e1000_timer_itr = deepcopy(e1000_skb_orphan)
+    e1000_timer_itr.e1000_options["NG_interrupt_mode"] = 2
+    e1000_timer_itr.name = "E1000-timer_itr"
+    # e1000_timer_itr.e1000_options["NG_parabatch"] = "on"
 
     e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                                 guest_ip="10.10.0.43",
@@ -97,15 +102,35 @@ def create_vms():
     e1000_arthur.qemu_config["drop_packet_every_avg_packet_size_min"] = 25000
     e1000_arthur.qemu_config["drop_packet_every_avg_packet_size_max"] = 60000
 
+    e1000_timer_itr_lq_4096 = deepcopy(e1000_timer_itr)
+    e1000_timer_itr_lq_4096.name = "E1000-timer_itr-lq1024"
+    e1000_timer_itr_lq_4096.large_queue = True
+    e1000_timer_itr_lq_4096.queue_size = 4096
+
+    e1000_timer_itr_parabatch = deepcopy(e1000_skb_orphan)
+    e1000_timer_itr_parabatch.e1000_options["NG_interrupt_mode"] = 2
+    e1000_timer_itr_parabatch.name = "E1000-timer_itr-parabatch"
+    e1000_timer_itr_parabatch.e1000_options["NG_parabatch"] = "on"
+    # e1000_timer_itr_parabatch.large_queue = True
+    # e1000_timer_itr_parabatch.queue_size = 4096
+
     return (
         # e1000_baseline,
+
         virtio,
         virtio_batch,
         # virtio_drop,
+
         # e1000_best_3_13,
         # e1000_best_interrupt_3_13,
         # e1000_best_interrupt,
-        e1000_skb_orphan
+
+        e1000_skb_orphan,
+
+        e1000_timer_itr,
+        # e1000_timer_itr_lq_4096,
+        # e1000_timer_itr_parabatch,
+
         # e1000_batch_interrupt,
         # e1000_best_lq
         # e1000_tso_offloading,

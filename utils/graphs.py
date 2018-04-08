@@ -1,4 +1,5 @@
 import shutil
+from operator import methodcaller
 from statistics import mean, stdev
 import itertools
 import logging
@@ -8,6 +9,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os.path
+from collections import defaultdict
 
 from utils.shell_utils import run_command_check, run_command
 
@@ -337,6 +339,23 @@ class GraphScatter(MultipleGraphs):
 
     def _calc_additional_params(self):
         return "blocks_num='{blocks}'; ".format(blocks=len(self.titles))
+
+
+class emptyGraph(Graph):
+    def __init__(self, *args, **kargs):
+        self.data = defaultdict(methodcaller(defaultdict, list))
+
+
+class FuncGraph(MultipleGraphs):
+    def __init__(self, func, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self._func = func
+
+    def _calc_data(self):
+        for x in self.graph1.data.keys():
+            for title in self.graph1.data[x].keys():
+                for val1 in self.graph1.data[x][title]:
+                    self.add_data(title, x, self._func(val1))
 
 
 if __name__ == "__main__":

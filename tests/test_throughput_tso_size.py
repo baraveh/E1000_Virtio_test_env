@@ -11,9 +11,9 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 from utils.vms import QemuNG, Qemu, QemuE1000Max, QemuE1000NG
 from test_qemu_throughput import TestCmpThroughputTSO
 
-RUNTIME = 8
-# RUNTIME = 15
-RETRIES = 1
+# RUNTIME = 8
+RUNTIME = 30
+RETRIES = 3
 BASE_DIR = r"/home/bdaviv/tmp/results/test-results-tso"
 
 OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
@@ -34,6 +34,10 @@ def create_vms():
     virtio = deepcopy(base)
     virtio.ethernet_dev = virtio.QEMU_VIRTIO
     virtio.name = "virtio"
+
+    virtio_batch = deepcopy(virtio)
+    virtio_batch.name = "virtio_batch"
+    virtio_batch.e1000_options["NG_notify_batch"] = "on"
 
     virtio_drop = deepcopy(virtio)
     virtio_drop.name = "virtio_drop"
@@ -59,7 +63,7 @@ def create_vms():
     e1000_batch_interrupt.name = "e1000-batch_itr"
     e1000_batch_interrupt.e1000_options["NG_interrupt_mul"] = 1
     e1000_batch_interrupt.e1000_options["NG_interrupt_mode"] = 1
-    e1000_batch_interrupt.e1000_options["NG_parabatch"] = "on"
+    # e1000_batch_interrupt.e1000_options["NG_parabatch"] = "on"
 
     e1000_best_lq = deepcopy(e1000_best_interrupt)
     e1000_best_lq.name = "e1000-int_mul-largeQ"
@@ -79,14 +83,40 @@ def create_vms():
     e1000_skb_orphan_lq_1024.queue_size = 1024
     e1000_skb_orphan_lq_1024.name = "E1000-skb_orphan-LQ_{}".format(e1000_skb_orphan_lq_1024.queue_size)
 
+    e1000_timer_itr = deepcopy(e1000_skb_orphan)
+    e1000_timer_itr.e1000_options["NG_interrupt_mode"] = 2
+    e1000_timer_itr.name = "E1000-timer_itr"
+    # e1000_timer_itr.e1000_options["NG_parabatch"] = "on"
+
+    e1000_timer_itr_parabatch = deepcopy(e1000_skb_orphan)
+    e1000_timer_itr_parabatch.e1000_options["NG_interrupt_mode"] = 2
+    e1000_timer_itr_parabatch.name = "E1000-timer_itr-parabatch"
+    e1000_timer_itr_parabatch.e1000_options["NG_parabatch"] = "on"
+    # e1000_timer_itr_parabatch.large_queue = True
+    # e1000_timer_itr_parabatch.queue_size = 4096
+
+    e1000_timer_itr_lq_4096 = deepcopy(e1000_timer_itr)
+    e1000_timer_itr_lq_4096.name = "E1000-timer_itr-lq4096"
+    e1000_timer_itr_lq_4096.large_queue = True
+    e1000_timer_itr_lq_4096.queue_size = 4096
+
     return (
         # e1000_baseline,
+
         virtio,
+        virtio_batch,
         # virtio_drop,
-        e1000_best_interrupt,
+
+        # e1000_best_interrupt,
+
         e1000_skb_orphan,
-        e1000_skb_orphan_lq_512,
-        e1000_skb_orphan_lq_1024
+
+        e1000_timer_itr,
+        # e1000_timer_itr_lq_4096,
+        # e1000_timer_itr_parabatch
+
+        # e1000_skb_orphan_lq_512,
+        # e1000_skb_orphan_lq_1024
     )
 
 
@@ -102,7 +132,7 @@ if __name__ == "__main__":
     root_logger.setLevel(logging.DEBUG)
 
     additional_x = [
-        (1514, "1.5K")
+        (1488, "1.5K")
     ]
 
     test = TestCmpThroughputTSO(create_vms(), RUNTIME, RETRIES, directory=BASE_DIR,

@@ -154,6 +154,9 @@ class Qemu(VM):
         sleep(2)
         self.unload_kvm()
 
+    def _get_temp_nic_additional(self):
+        return ""
+
     def _run(self):
         assert self.exe
 
@@ -205,7 +208,7 @@ class Qemu(VM):
             vhost=vhost_param,
             dev_type=self.ethernet_dev,
             mac=self.mac_address,
-            nic_additionals=self.nic_additionals,
+            nic_additionals=self.nic_additionals + self._get_temp_nic_additional(),
             pidfile=self.pidfile.name,
             vnc=self.vnc_number,
             mem=self.mem,
@@ -326,9 +329,8 @@ class QemuNG(Qemu):
         self.static_itr = False
         self.queue_size = 0
 
-    def _run(self):
-        self.nic_additionals += "," + ",".join(("%s=%s" % (k, v) for k, v in self.e1000_options.items()))
-        super()._run()
+    def _get_temp_nic_additional(self):
+        return "," + ",".join(("%s=%s" % (k, v) for k, v in self.e1000_options.items()))
 
     def configure_guest(self):
         super().configure_guest()

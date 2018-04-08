@@ -59,9 +59,10 @@ class NetPerfTCP(NetPerf):
     def __init__(self, *args, **kargs):
         super(NetPerfTCP, self).__init__(*args, **kargs)
         self.test = "TCP_STREAM"
+        self._static_test_params = ""
 
     def test_params(self, msg_size, vm_param=""):
-        return " -- -m {} {}".format(msg_size, vm_param)
+        return " -- -m {} {} {}".format(msg_size, vm_param, self._static_test_params)
 
 
 class NetPerfUDP(NetPerf):
@@ -88,6 +89,10 @@ class NetPerfLatency(NetPerf):
 
 
 class NetPerfTcpTSO(NetPerfTCP):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self._static_test_params = "-C"
+
     def run_netperf(self, vm: VM, title="", x="", remote_ip=None, *args, **kargs):
         try:
             vm.remote_command(

@@ -381,9 +381,11 @@ class QemuThroughputTest(TestBaseNetperf):
 
 
 class TestCmpThroughput(QemuThroughputTest):
-    def __init__(self, vms, *args, **kargs):
+    def __init__(self, vms, *args, additional_x=None, **kargs):
         self._test_vms = vms
         super().__init__(*args, **kargs)
+        if additional_x:
+            self._x_categories += additional_x
 
     def get_vms(self):
         assert len({vm.name for vm in self._test_vms}) == len(self._test_vms)
@@ -393,10 +395,8 @@ class TestCmpThroughput(QemuThroughputTest):
 class TestCmpThroughputTSO(TestCmpThroughput):
     NETPERF_CLS = NetPerfTcpTSO
 
-    def __init__(self, *args, additional_x=None, **kargs):
+    def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
-        if additional_x:
-            self._x_categories += additional_x
 
 
 if __name__ == "__main__":
