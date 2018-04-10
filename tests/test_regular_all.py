@@ -1,14 +1,7 @@
 import logging
 import os
-import shutil
 from copy import deepcopy
-import sys
-
-
-PACKAGE_PARENT = '..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-
+import socket
 from utils.vms import QemuNG, Qemu, QemuE1000Max, QemuE1000NG
 from test_qemu_latency import TestCmpLatency
 from test_qemu_throughput import TestCmpThroughputTSO, TestCmpThroughput
@@ -16,7 +9,9 @@ from test_qemu_throughput import TestCmpThroughputTSO, TestCmpThroughput
 # RUNTIME = 8
 RUNTIME = 10
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-results-combined"
+BASE_DIR = r"/home/bdaviv/tmp/results/{hostname}/test-results-combined".format(
+    hostname=socket.gethostname()
+)
 
 OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
 OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
@@ -119,6 +114,12 @@ def create_vms():
     e1000_timer_itr_reg = deepcopy(e1000_skb_orphan)
     e1000_timer_itr_reg.e1000_options["NG_interrupt_mode"] = 3
     e1000_timer_itr_reg.name = "E1000-timer_itr-reg"
+
+    virtio.enabled = False
+    virtio_batch.enabled = False
+    e1000_skb_orphan.enabled = False
+    e1000_baseline.enabled = False
+    # e1000_timer_itr_reg.enabled = False
 
     return (
 

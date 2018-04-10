@@ -25,6 +25,9 @@ class Sensor:
     def create_graph(self, retries):
         self.graph.create_graph(retries)
 
+    def load_old_data(self, vm_name):
+        self.graph.load_old_results(vm_name)
+
 
 class SensorBeforeAfter(Sensor):
     def __init__(self, *args, **kargs):
@@ -64,4 +67,7 @@ class DummySensor(Sensor):
         pass
 
     def test_before(self, vm: VM):
+        pass
+
+    def load_old_data(self, vm_name):
         pass

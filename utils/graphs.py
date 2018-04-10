@@ -82,6 +82,17 @@ class GraphBase:
                                                                      png=self.png_filename)
         run_command_check(cmd)
 
+    def load_old_results(self, vm_name, filename=None):
+        if filename is None:
+            filename = self.json_filename
+
+        with open(filename, "r") as f:
+            old_json = json.load(f)
+
+        for x in old_json:
+            for data in old_json[x][vm_name]:
+                self.add_data(vm_name, int(x), data)
+
 
 class GraphGnuplot(GraphBase):
     def __init__(self, *args, **kargs):
@@ -107,7 +118,7 @@ class GraphGnuplot(GraphBase):
             for title in self.titles:
                 f.write("{} ".format(title))
             f.write("\n")
-            for x in sorted(self.data):
+            for x in sorted(self.data, key=int):
                 f.write("{} ".format(x))
                 for title in self.titles:
                     try:
@@ -331,7 +342,7 @@ class GraphScatter(MultipleGraphs):
 
     def create_data_file(self):
         with open(self.data_filename, "w") as f:
-            for title in self._scatter_data:
+            for title in self.titles:
                 f.write("title {}\n".format(title))
                 for x, y in self._scatter_data[title]:
                     f.write("{} {}\n".format(x, y))
@@ -343,7 +354,7 @@ class GraphScatter(MultipleGraphs):
 
 class emptyGraph(Graph):
     def __init__(self, *args, **kargs):
-        self.data = defaultdict(methodcaller(defaultdict, list))
+        self.data = defaultdict(lambda: defaultdict(lambda: list()))
 
 
 class FuncGraph(MultipleGraphs):

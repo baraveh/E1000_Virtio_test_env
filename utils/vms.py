@@ -24,9 +24,18 @@ class VM(Machine):
         self.path = path
         self.ip_guest = guest_ip
         self.ip_host = host_ip
-        self.name = None
         self.bootwait = self.BOOTUP_WAIT
         self.netperf_test_params = ""
+
+    def get_info(self, old_info=None):
+        DISK_PATH = "disk_path"
+        info = super().get_info(old_info)
+
+        if not self.enabled:
+            info.update({k: old_info[k] for k in (DISK_PATH,)})
+        else:
+            info[DISK_PATH] = self.path
+        return info
 
     def setup(self):
         logger.info("Setup VM: %s", self)
@@ -106,6 +115,43 @@ class Qemu(VM):
         self.qemu_additionals = ""
 
         self.qmp = None
+
+    def get_info(self, old_info=None):
+        KERNEL_FILE = "kernel_file"
+        KERNEL_GIT = "kernel_git"
+        KERNEL_CMD = "kernel_cmd"
+
+        QEMU_FILE = "qemu_file"
+        QEMU_GIT = "qemu_git"
+
+        NIC_TYPE = "nic_type"
+        CPU_PIN = "cpu_pin"
+        MEM = "mem"
+        NICE = "nice"
+
+        keys = (KERNEL_FILE, KERNEL_GIT, KERNEL_CMD, QEMU_FILE, QEMU_GIT, NIC_TYPE, CPU_PIN, MEM, NICE)
+
+        info = super().get_info(old_info)
+
+        if not self.enabled:
+            info.update({k: old_info[k] for k in keys})
+        else:
+            info[KERNEL_FILE] = self.kernel
+            info[KERNEL_GIT] = run_command_output("git -C {directory} rev-parse --short HEAD".format(
+                directory=os.path.dirname(self.kernel)
+            )).strip()
+            info[KERNEL_CMD] = self.kernel_cmdline
+
+            info[QEMU_FILE] = self.exe
+            info[QEMU_GIT] = run_command_output("git -C {directory} rev-parse --short HEAD".format(
+                directory=os.path.dirname(self.exe)
+            )).strip()
+
+            info[NIC_TYPE] = self.ethernet_dev
+            info[CPU_PIN] = self.cpu_to_pin
+            info[MEM] = self.mem
+            info[NICE] = (self.is_io_thread_nice, self.io_nice)
+        return info
 
     def create_tun(self):
         """
@@ -339,6 +385,22 @@ class QemuNG(Qemu):
             self.remote_command("sudo ethtool -G eth0 tx {}".format(self.queue_size))
         if self.static_itr:
             self.remote_command("sudo ethtool -C eth0 rx-usecs 4000")
+
+    def get_info(self, old_info=None):
+        E1000_OPTIONS = "e1000_options"
+        LARGE_QUEUE = "large_queue"
+        STATIC_ITR = "static_itr"
+        QUEUE_SIZE = "queue_size"
+        keys = (E1000_OPTIONS, LARGE_QUEUE, STATIC_ITR, QUEUE_SIZE)
+
+        info = super().get_info(old_info)
+
+        if not self.enabled:
+            info.update({k: old_info[k] for k in keys})
+        else:
+            info.update({k: getattr(self, k) for k in keys})
+
+        return info
 
 
 class QemuE1000NG(QemuNG):

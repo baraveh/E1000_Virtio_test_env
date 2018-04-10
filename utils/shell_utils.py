@@ -42,7 +42,7 @@ def run_command_output(command_string, shell=False, log_output=True, cwd=None):
 
 
 def run_prepare_command(servername, user, command):
-    full_command = 'ssh {user}@{host} \'{command}\''.format(host=servername, user=user, command=command)
+    full_command = 'ssh -o "StrictHostKeyChecking no" {user}@{host} \'{command}\''.format(host=servername, user=user, command=command)
     return full_command
 
 

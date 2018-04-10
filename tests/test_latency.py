@@ -1,20 +1,16 @@
 import logging
 import os
-import shutil
+import socket
 from copy import deepcopy
-import sys
-
-PACKAGE_PARENT = '..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-
 from utils.vms import QemuNG, Qemu, QemuE1000Max, QemuE1000NG
 from test_qemu_latency import TestCmpLatency
 
 # RUNTIME = 8
 RUNTIME = 30
 RETRIES = 3
-BASE_DIR = r"/home/bdaviv/tmp/results/test-results-latency"
+BASE_DIR = r"/home/bdaviv/tmp/results/{hostname}/test-results-latency".format(
+    hostname=socket.gethostname()
+)
 
 OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
 OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"

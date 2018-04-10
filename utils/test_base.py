@@ -1,7 +1,11 @@
+import json
+import os
+from collections import defaultdict
 from time import sleep
 
 from sensors.netperf import netserver_start, netserver_stop
-from utils.shell_utils import run_command_async, run_command_check
+from utils.machine import localRoot
+from utils.shell_utils import run_command_async, run_command_check, run_command_output
 from utils.vms import VM, Qemu
 from utils.sensors import Sensor
 import logging
@@ -40,7 +44,38 @@ class TestBase:
     def get_x_categories(self):  # -> list[(int, str)]:
         raise NotImplementedError()
 
+    def create_testinfo(self):
+        VMS = "VMs"
+        HOST = "Host"
+        TEST = "Test"
+        testinfo_filename = os.path.join(self.dir, "testinfo.json")
+
+        old_info = dict()
+        if os.path.exists(testinfo_filename):
+            with open(testinfo_filename, "r") as f:
+                old_info = json.load(f)
+
+        if VMS not in old_info:
+            old_info[VMS] = defaultdict(lambda: None)
+
+        info = dict()
+        info[HOST] = localRoot.get_info()
+        info[VMS] = dict()
+        for vm, name in self._vms:
+            if vm.enabled:
+                info[VMS][name] = vm.get_info()
+            else:
+                info[VMS][name] = vm.get_info(old_info[VMS][name])
+
+        info[TEST] = dict()
+        info[TEST]["name"] = self.__class__.__name__
+        info[TEST]["runtime"] = getattr(self, "netperf_runtime", 0)
+
+        with open(testinfo_filename, "w") as f:
+            json.dump(info, f, sort_keys=True, indent=4)
+
     def pre_run(self):
+        self.create_testinfo()
         for sensor in self._sensors:
             sensor.set_column_names([vm_name for _, vm_name in self._vms])
             sensor.set_x_tics(labels=[size_name for _, size_name in self._x_categories],
@@ -48,34 +83,44 @@ class TestBase:
 
     def run(self):
         for vm, vm_name in self._vms:
-            vm.setup()
-            vm.run()
-            try:
-                for x_value, x_value_name in self._x_categories:
-                    for i in range(self._retries):
-                        for sensor in self._sensors:
-                            try:
-                                sensor.test_before(vm)
-                            except:
-                                logger.error("Sensor Exception: ", exc_info=True)
+            if vm.enabled:
+                self.run_vm(vm, vm_name)
+            else:
+                self.load_old_vm_data(vm, vm_name)
 
-                        logger.info("Running vm=%s, msg size=%s", vm_name, x_value_name)
-                        self.test_func(vm, vm_name, x_value)
+    def run_vm(self, vm, vm_name):
+        vm.setup()
+        vm.run()
+        try:
+            for x_value, x_value_name in self._x_categories:
+                for i in range(self._retries):
+                    for sensor in self._sensors:
+                        try:
+                            sensor.test_before(vm)
+                        except:
+                            logger.error("Sensor Exception: ", exc_info=True)
 
-                        for sensor in self._sensors:
-                            try:
-                                sensor.test_after(vm, vm_name, x_value)
-                            except:
-                                logger.error("Exception: ", exc_info=True)
-            except KeyboardInterrupt:
-                pass
-            except:
-                import traceback
-                traceback.print_exc()
-            finally:
-                if self._stop_after_test:
-                    input("Press Enter to continue")
-                vm.teardown()
+                    logger.info("Running vm=%s, msg size=%s", vm_name, x_value_name)
+                    self.test_func(vm, vm_name, x_value)
+
+                    for sensor in self._sensors:
+                        try:
+                            sensor.test_after(vm, vm_name, x_value)
+                        except:
+                            logger.error("Exception: ", exc_info=True)
+        except KeyboardInterrupt:
+            pass
+        except:
+            import traceback
+            traceback.print_exc()
+        finally:
+            if self._stop_after_test:
+                input("Press Enter to continue")
+            vm.teardown()
+
+    def load_old_vm_data(self, vm, vm_name):
+        for sensor in self._sensors:
+            sensor.load_old_data(vm_name)
 
     def post_run(self):
         for sensor in self._sensors:
