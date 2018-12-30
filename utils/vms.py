@@ -3,7 +3,7 @@ import os
 from subprocess import CalledProcessError
 
 from qemu.qmp import QEMUMonitorProtocol
-from utils.machine import Machine
+from utils.machine import Machine, localRoot
 from utils.shell_utils import run_command_output, run_command_check, run_command_remote, run_command_async, run_command
 from time import sleep
 from tempfile import NamedTemporaryFile
@@ -36,14 +36,6 @@ class VM(Machine):
         else:
             info[DISK_PATH] = self.path
         return info
-
-    def setup(self):
-        logger.info("Setup VM: %s", self)
-        raise NotImplementedError()
-
-    def teardown(self):
-        logger.info("Teardown VM: %s", self)
-        raise NotImplementedError()
 
     def _run(self):
         raise NotImplementedError()
@@ -114,6 +106,8 @@ class Qemu(VM):
         self.nic_additionals = ""
         self.qemu_additionals = ""
 
+        self.disable_kvm_poll = False
+
         self.qmp = None
 
     def get_info(self, old_info=None):
@@ -172,20 +166,37 @@ class Qemu(VM):
 
     def delete_tun(self):
         if self.bridge:
-            run_command_check("sudo brctl delif {br} {iff}".format(br=self.bridge, iff=self.tap_device))
-        run_command_check("sudo tunctl -d {tap}".format(tap=self.tap_device))
+            run_command("sudo brctl delif {br} {iff}".format(br=self.bridge, iff=self.tap_device))
+        while True:
+            try:
+                run_command_check("sudo tunctl -d {tap}".format(tap=self.tap_device))
+                break
+            except:
+                sleep(1)
 
     def load_kvm(self):
         run_command_check("sudo modprobe kvm-intel")
+        if self.disable_kvm_poll:
+            run_command_check("echo 0 | sudo tee /sys/module/kvm/parameters/halt_poll_ns")
 
     def unload_kvm(self):
         sleep(1)
         run_command("sudo modprobe -r kvm-intel")
 
+    def _clean_cpu(self):
+        run_command("echo 0 |sudo tee /sys/devices/system/cpu/cpu{cpu}/online".format(
+            cpu=self.cpu_to_pin
+        ), shell=True)
+        run_command("echo 1 |sudo tee /sys/devices/system/cpu/cpu{cpu}/online".format(
+            cpu=self.cpu_to_pin
+        ), shell=True)
+
     def setup(self):
+        super().setup()
         self.load_kvm()
         self.create_tun()
         self._configure_host()
+        self._clean_cpu()
 
     def teardown(self):
         try:
@@ -196,9 +207,11 @@ class Qemu(VM):
         self.qmp = QEMUMonitorProtocol(('127.0.0.1', 1235))
         self._pid = None
         self._reset_host_configuration()
+        sleep(20)
         self.delete_tun()
         sleep(2)
         self.unload_kvm()
+        super().teardown()
 
     def _get_temp_nic_additional(self):
         return ""
@@ -211,6 +224,9 @@ class Qemu(VM):
 
         if self.vhost:
             vhost_param = ",vhost=on"
+            # HACK HACK HACK
+            localRoot.remote_command("chown :kvm /dev/vhost-net")
+            localRoot.remote_command("chmod 660 /dev/vhost-net")
         else:
             vhost_param = ""
 
@@ -231,7 +247,7 @@ class Qemu(VM):
                 cmdline_more=self.kernel_cmdline_additional
             )
 
-        qemu_command = "taskset -c {cpu} {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
+        qemu_command = "taskset -c {cpu} numactl -m 0 {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
                        "{kernel_additions} " \
                        "{qemu_additionals} " \
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
@@ -263,6 +279,9 @@ class Qemu(VM):
         sleep(0.5)
         if self.qemu_config:
             self.change_qemu_parameters()
+        if self.io_thread_cpu:
+            command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
+            run_command_check(command)
         if self.is_io_thread_nice:
             self.set_iothread_nice()
         sleep(1)
@@ -276,9 +295,6 @@ class Qemu(VM):
     def change_qemu_parameters(self, config=None):
         if config:
             self.qemu_config.update(config)
-        if self.io_thread_cpu:
-            command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
-            run_command_check(command)
 
         with open(self.QEMU_E1000_DEBUG_PARAMETERS_FILE, "w") as f:
             for name, value in self.qemu_config.items():
@@ -415,8 +431,15 @@ class QemuE1000NG(QemuNG):
             "NG_tso_offloading": "on",
             "NG_drop_packet": "off",
             "NG_interrupt_mul": 10,  #1,  # 10
-            "NG_interrupt_mode": 0,  #1  # 0
+            "NG_interrupt_mode": 0,  # 0 - normal,
+                                     # 1 - batch,
+                                     # 2 - smart timer reference to end of recv,
+                                     # 3 - smart timer reference to last interrupt (as normal)
             "NG_parabatch": "off",
+            "NG_vcpu_send_latency": "on",  # skip context switch to iothread if low latency mode detected
+            # "NG_interuupt_momentum": 1,
+            # "NG_interuupt_momentum_max": 20,
+            "NG_disable_iothread_lock": "off",  # disable taking iothread lock in e1000 mmio
         }
 
         self.ethernet_dev = self.QEMU_E1000
@@ -466,6 +489,7 @@ class VMware(VM):
     BOOTUP_WAIT = 15
 
     def setup(self):
+        super().setup()
         run_command_check("sudo service vmware start")
         sleep(1)
 
@@ -477,6 +501,7 @@ class VMware(VM):
         self.shutdown()
         run_command_check("sudo service vmware stop")
         sleep(1)
+        super().teardown()
 
 
 virtualBox_count = 0
@@ -486,6 +511,7 @@ class VirtualBox(VM):
 
     def setup(self):
         global virtualBox_count
+        super().setup()
         if virtualBox_count == 0:
             run_command_check("sudo rcvboxdrv start")
             sleep(1)
@@ -506,6 +532,7 @@ class VirtualBox(VM):
         if virtualBox_count == 0:
             run_command("sudo rcvboxdrv stop")
             sleep(1)
+        super().teardown()
 
     def _run(self):
         command = "VBoxManage startvm {} --type headless".format(self.path)

@@ -43,15 +43,20 @@ class GraphBase:
     def set_column_names(self, titles):
         self.titles = titles
 
-    def add_data(self, title, x, value):
+    def add_data(self, title, x, value, is_normalize=False):
         assert title in self.titles
+        if not is_normalize:
+            normalize = self.normalize
+        else:
+            normalize = 1
+
         if x not in self.data:
             self.data[x] = dict()
 
         if title not in self.data[x]:
-            self.data[x][title] = [float(value)/self.normalize]
+            self.data[x][title] = [float(value)/normalize]
         else:
-            self.data[x][title].append(float(value)/self.normalize)
+            self.data[x][title].append(float(value)/normalize)
 
     def set_x_tics(self, values, labels):
         assert(len(values) == len(labels))
@@ -86,12 +91,16 @@ class GraphBase:
         if filename is None:
             filename = self.json_filename
 
-        with open(filename, "r") as f:
-            old_json = json.load(f)
+        try:
+            with open(filename, "r") as f:
+                old_json = json.load(f)
 
-        for x in old_json:
-            for data in old_json[x][vm_name]:
-                self.add_data(vm_name, int(x), data)
+            for x in old_json:
+                for data in old_json[x][vm_name]:
+                    self.add_data(vm_name, float(x), data, is_normalize=True)
+        except FileNotFoundError:
+            for x in self.data:
+                self.add_data(vm_name, int(x), 0)
 
 
 class GraphGnuplot(GraphBase):
@@ -152,6 +161,8 @@ all: $(PDFS) $(PNGS)
 \t@cat ./$*.command
 \tbash ./$*.command
 
+clean:
+\trm -f *.pdf *.png
                 """)
 
     def _calc_additional_params(self):
@@ -298,7 +309,10 @@ class RatioGraph(MultipleGraphs):
         for x in self.graph1.data.keys():
             for title in self.graph1.data[x].keys():
                 for val1, val2 in zip(self.graph1.data[x][title], self.graph2.data[x][title]):
-                    self.add_data(title, x, val1 / val2)
+                    if val2 != 0:
+                        self.add_data(title, x, val1 / val2)
+                    else:
+                        self.add_data(title, x, 0)
 
 
 class SameDataGraph(Graph):
@@ -352,21 +366,26 @@ class GraphScatter(MultipleGraphs):
         return "blocks_num='{blocks}'; ".format(blocks=len(self.titles))
 
 
-class emptyGraph(Graph):
+class EmptyGraph(Graph):
     def __init__(self, *args, **kargs):
         self.data = defaultdict(lambda: defaultdict(lambda: list()))
 
 
 class FuncGraph(MultipleGraphs):
-    def __init__(self, func, *args, **kargs):
+    def __init__(self, func, *args, more_graphs=None, **kargs):
         super().__init__(*args, **kargs)
         self._func = func
+
+        if more_graphs is None:
+            more_graphs = tuple()
+        self._more_graphs = more_graphs
 
     def _calc_data(self):
         for x in self.graph1.data.keys():
             for title in self.graph1.data[x].keys():
-                for val1 in self.graph1.data[x][title]:
-                    self.add_data(title, x, self._func(val1))
+                graphs_data = [g.data[x][title] for g in (self.graph1, self.graph2) + self._more_graphs if not isinstance(g, EmptyGraph)]
+                for value in zip(*graphs_data):
+                    self.add_data(title, x, self._func(*value))
 
 
 if __name__ == "__main__":

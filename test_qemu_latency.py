@@ -4,12 +4,13 @@ from copy import deepcopy
 
 import test_qemu_throughput
 from sensors import netperf
-from sensors.cpu import get_all_cpu_sensors
-from sensors.interrupts import InterruptSensor
+from sensors.cpu import get_all_cpu_sensors, get_all_proc_cpu_sensors
+from sensors.interrupts import InterruptSensor, QemuInterruptDelaySensor
 from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchDescriptorsSizeSensor, QemuBatchCountSensor
-from utils.graphs import Graph, RatioGraph, GraphErrorBarsGnuplot, FuncGraph, emptyGraph
+from sensors.sched import SchedSwitchSensor
+from utils.graphs import Graph, RatioGraph, GraphErrorBarsGnuplot, FuncGraph, EmptyGraph
 from utils.sensors import DummySensor
 
 
@@ -36,7 +37,8 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
     def get_sensors(self):
         ret = super(LatencyTest, self).get_sensors
         self.netperf = netperf.NetPerfLatency(
-            GraphErrorBarsGnuplot("Message size [bytes]", "Transactions/Sec",
+            # GraphErrorBarsGnuplot
+            Graph("Message size [bytes]", "Transactions/Sec",
                                   path.join(self.dir, "latency"),
                                   graph_title="Latency(%s sec)" % (self.netperf_runtime,)),
             runtime=self.netperf_runtime
@@ -44,8 +46,8 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
         # self.netperf.graph.script_filename = "gnuplot/plot_columns_latency"
 
         letency_us = DummySensor(
-            FuncGraph(lambda x1: 1 / x1 * 1000 * 1000 ,
-                      self.netperf.graph, emptyGraph(),
+            FuncGraph(lambda x1: 1 / x1 * 1000 * 1000,
+                      self.netperf.graph, EmptyGraph(),
                       "Message Size [bytes]", "uSec",
                       path.join(self.dir, "latency-time"),
                       graph_title="Latency (%s sec)" % (self.netperf_runtime,))
@@ -125,7 +127,26 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
                   normalize=self.netperf_runtime)
         )
 
-        cpu_sensors = get_all_cpu_sensors(self.dir, "latency", self.netperf_runtime)
+        interrupt_delay = QemuInterruptDelaySensor(
+            Graph("msg size", "Average interrupt delay",
+                  path.join(self.dir, "latency-interrupt_delay"))
+        )
+
+        sched_switch = SchedSwitchSensor(
+            Graph("msg size", "Num of Scheduler switch (per sec)",
+                  path.join(self.dir, "latency-context_switch"),
+                  normalize=self.netperf_runtime
+                  )
+        )
+        sched_switch_per_batch = DummySensor(
+            RatioGraph(sched_switch.graph, self.netperf.graph,
+                       "msg size", "Context switch per transaction",
+                       path.join(self.dir, "latency-context_switch-ratio")
+                       )
+        )
+
+        cpu_sensors = get_all_cpu_sensors(self.dir, "latency", self.netperf_runtime, exits_graph=kvm_exits.graph)
+        cpu_proc_sensors = get_all_proc_cpu_sensors(self.dir, "latency", self.netperf_runtime, exits_graph=kvm_exits.graph)
 
         return [self.netperf,
                 letency_us,
@@ -144,16 +165,20 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
                 batch_descriptos_size,
                 batch_count,
 
-                interrupt_ratio
-                ] + cpu_sensors
+                interrupt_ratio,
+
+                interrupt_delay,
+
+                sched_switch,
+                sched_switch_per_batch,
+
+                ] + cpu_sensors + cpu_proc_sensors
 
 
 class TestCmpLatency(LatencyTest):
-    def __init__(self, vms, *args, additional_x=None, **kargs):
+    def __init__(self, vms, *args, **kargs):
         self._test_vms = vms
         super().__init__(*args, **kargs)
-        if additional_x:
-            self._x_categories += additional_x
 
     def get_vms(self):
         assert len({vm.name for vm in self._test_vms}) == len(self._test_vms)

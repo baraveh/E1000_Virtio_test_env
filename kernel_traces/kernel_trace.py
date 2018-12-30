@@ -24,19 +24,24 @@ class Trace:
         self.target_file = target_file
         self._thread = threading.Thread(target=thread_read_trace, args=(self,))
         self._read_proc = None
+        self._trace_on = False
+
+        # self._old_cpumask = self.read_value("tracing_cpumask")
 
     def _key2path(self, key):
         if not isinstance(key, str):
             key = os.path.join(*key)
         return key
 
-    def write_value(self, key, value, append=False):
+    def write_value(self, key, value, append=False, cpu=None):
         print(repr(value))
         command = "echo {value} {redirect} {key_path}".format(
             value=value,
             key_path=os.path.join(self.TRACE_DIR, self._key2path(key)),
             redirect=[">", ">>"][append]
         )
+        if cpu is not None:
+            command = "taskset -c {} bash -c \"{}\"".format(cpu, command)
         self.target.remote_command(command)
 
     def read_value(self, key, **kargs):
@@ -58,14 +63,24 @@ class Trace:
 
     def trace_on(self):
         self.write_value("tracing_on", 1)
+        self._trace_on = True
 
     def trace_off(self):
         self.write_value("tracing_on", 0)
+        # self.write_value("tracing_cpumask", self._old_cpumask)
+        self._trace_on = False
 
-    def read_trace_once(self, to_file=True):
-        data = self.read_value("trace", log_output=False)
+    def read_trace_once(self, to_file=True, cpu=None, filename=None):
+        cpu_dir = ""
+        if cpu:
+            cpu_dir = os.path.join("per_cpu", "cpu{}".format(cpu))
+
+        if filename is None:
+            filename = self.target_file
+
+        data = self.read_value(os.path.join(cpu_dir, "trace"), log_output=False)
         if to_file:
-            with open(self.target_file, "w") as f:
+            with open(filename, "w") as f:
                 f.write(data)
         else:
             return data
@@ -179,8 +194,11 @@ class Trace:
         )
         self.uprobe_add(event)
 
-    def trace_marker(self, msg):
-        self.write_value("trace_marker", msg)
+    def trace_marker(self, msg, cpu=None):
+        if self._trace_on:
+            self.write_value("trace_marker", msg, cpu=cpu)
+        else:
+            logger.debug("Tracer is off, not writing marker %s", msg)
 
 
 def thread_read_trace(trace):

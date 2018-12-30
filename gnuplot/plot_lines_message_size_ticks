@@ -1,3 +1,17 @@
+set style data linesp
+w=4
+p=0.9
+set style line 1 lt 1 lw w pt 1 ps p
+set style line 2 lt 2 lw w pt 1 ps p
+set style line 3 lt 3 lw w pt 1 ps p
+set style line 4 lt 4 lw w pt 1 ps p
+set style line 5 lt 5 lw w pt 1 ps p
+set style line 6 lt 7 lw w pt 1 ps p
+set style line 7 lt 8 lw w pt 1 ps p
+set style line 8 lt 9 lw w pt 1 ps p
+set style line 9 lt 10 lw w pt 1 ps p
+set style line 10 lt 11 lw w pt 1 ps p
+
 set terminal pdf
 set output output_filename
 
@@ -37,7 +51,7 @@ if (columns_num == 3){
          data_filename using 1:3 with linespoints title col lt rgb "red", \
          data_filename using 1:2:(sprintf("%.1f", $2/$3)) with labels notitle
 } else {
-    plot for [i=2:columns_num] data_filename using 1:i with linespoints title col
+    plot for [i=2:columns_num] data_filename using 1:i with linespoints title col ls i-1
 }
 
 #plot x

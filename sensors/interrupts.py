@@ -44,3 +44,18 @@ class InterruptSensor(SensorBeforeAfter):
 
     def _delta(self, value1, value2):
         return value2 - value1
+
+
+import logging
+class QemuInterruptDelaySensor(SensorBeforeAfter):
+    def _get_value(self, vm: Qemu):
+        result = vm.qmp.command("query-intr-delay")
+        logging.debug("interrupt delay = %s", result)
+        if result["count"] == 0:
+            return 0
+        else:
+            return result["sum"] / result["count"]
+
+    def _delta(self, value1, value2):
+        return value2
+

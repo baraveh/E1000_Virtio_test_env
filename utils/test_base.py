@@ -3,11 +3,8 @@ import os
 from collections import defaultdict
 from time import sleep
 
-from sensors.netperf import netserver_start, netserver_stop
 from utils.machine import localRoot
-from utils.shell_utils import run_command_async, run_command_check, run_command_output
-from utils.vms import VM, Qemu
-from utils.sensors import Sensor
+from utils.vms import VM
 import logging
 
 logging.basicConfig()
@@ -18,7 +15,7 @@ logger.setLevel(logging.DEBUG)
 class TestBase:
     DIR = ""
 
-    def __init__(self, retries: int, directory=None):
+    def __init__(self, retries: int, directory=None, all_x=True, additional_x=None, ):
         self.dir = self.DIR
         if directory:
             self.dir = directory
@@ -29,8 +26,14 @@ class TestBase:
         self._vms = self.get_vms()
         self._sensors = self.get_sensors()
 
-        self._x_categories = self.get_x_categories()
+        if all_x:
+            self._x_categories = self.get_x_categories()
+        else:
+            self._x_categories = list()
         self._stop_after_test = False
+
+        if additional_x:
+            self._x_categories += additional_x
 
     def test_func(self, vm: VM, vm_name: str, x_value: int):
         raise NotImplementedError()
@@ -133,12 +136,16 @@ class TestBase:
 class TestBaseNetperf(TestBase):
     NETPERF_CORE = '0'
 
+    def __init__(self, *args, netperf_core=None, **kargs):
+        super().__init__(*args, **kargs)
+        self.netperf_core = netperf_core
+        if netperf_core is None:
+            self.netperf_core = self.NETPERF_CORE
+
     def pre_run(self):
         super().pre_run()
-        netserver_start(self.NETPERF_CORE)
 
     def post_run(self):
-        netserver_stop()
         super().post_run()
 
 

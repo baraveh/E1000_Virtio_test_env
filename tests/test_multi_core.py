@@ -6,10 +6,10 @@ from utils.vms import QemuNG, Qemu, QemuE1000Max, QemuE1000NG
 from test_qemu_latency import TestCmpLatency
 from test_qemu_throughput import TestCmpThroughputTSO, TestCmpThroughput
 
-# RUNTIME = 3
-RUNTIME = 150
+# RUNTIME = 30
+RUNTIME = 10
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-results-combined/{hostname}".format(
+BASE_DIR = r"/home/bdaviv/tmp/results/test-multi-core/{hostname}".format(
     hostname=socket.gethostname()
 )
 
@@ -30,10 +30,6 @@ def create_vms():
     virtio = deepcopy(base)
     virtio.ethernet_dev = virtio.QEMU_VIRTIO
     virtio.name = "virtio"
-
-    virtio_vhost = deepcopy(virtio)
-    virtio_vhost.name += "_vhost"
-    virtio_vhost.vhost = True
 
     virtio_batch = deepcopy(virtio)
     virtio_batch.name = "virtio_batch"
@@ -138,48 +134,6 @@ def create_vms():
     e1000_timer_itr_reg_nolock.name += "-nolock"
     e1000_timer_itr_reg_nolock.e1000_options["NG_disable_iothread_lock"] = "on"
 
-    e1000_batch_interrupt_nolock = deepcopy(e1000_batch_interrupt)
-    e1000_batch_interrupt_nolock.name += "-nolock"
-    e1000_batch_interrupt_nolock.e1000_options["NG_disable_iothread_lock"] = "on"
-
-    e1000_halt = deepcopy(e1000_skb_orphan)
-    e1000_halt.name = "E1000-halt"
-    e1000_halt.e1000_options["NG_parahalt"] = "on"
-    # e1000_halt.e1000_options["NG_disable_iothread_lock"] = "on"
-    # e1000_halt.e1000_options["NG_tx_iothread"] = "off"
-    e1000_halt.e1000_options["NG_interrupt_mode"] = 0
-    e1000_halt.e1000_options["NG_interrupt_mul"] = 0
-    e1000_halt.e1000_options["mitigation"] = "off"
-
-    e1000_halt_lq = deepcopy(e1000_halt)
-    e1000_halt_lq.name += "-lq"
-    e1000_halt_lq.large_queue = True
-    e1000_halt_lq.queue_size = 512
-
-    e1000_halt_unlock = deepcopy(e1000_halt)
-    e1000_halt_unlock.name += "-unlocked"
-    e1000_halt_unlock.e1000_options["NG_disable_iothread_lock"] = "on"
-
-    e1000_halt_no_rdt_jump = deepcopy(e1000_halt)
-    e1000_halt_no_rdt_jump.name += "-no_rdt_jump"
-    e1000_halt_no_rdt_jump.e1000_options["NG_disable_rdt_jump"] = "on"
-    e1000_halt_no_rdt_jump.e1000_options["NG_fast_iothread_kick"] = "on"
-    e1000_halt_no_rdt_jump.disable_kvm_poll = True
-
-    e1000_halt_no_rdt_jump_lq = deepcopy(e1000_halt_no_rdt_jump)
-    e1000_halt_no_rdt_jump_lq.name += "-lq"
-    e1000_halt_no_rdt_jump_lq.large_queue = True
-    e1000_halt_no_rdt_jump_lq.queue_size = 512
-
-    virtio_batch_nopoll = deepcopy(virtio_batch)
-    virtio_batch_nopoll.disable_kvm_poll = True
-    virtio_batch_nopoll.name += "-nopoll"
-
-    e1000_halt_no_rdt_jump_no_itr = deepcopy(e1000_halt_no_rdt_jump)
-    e1000_halt_no_rdt_jump_no_itr.name += "-no_itr"
-    e1000_halt_no_rdt_jump_no_itr.static_itr = True
-    e1000_halt_no_rdt_jump_no_itr.ethernet_dev = e1000_halt_no_rdt_jump_no_itr.QEMU_E1000_BETTER
-
     # virtio.enabled = False
     # virtio_batch.enabled = False
     # e1000_skb_orphan.enabled = False
@@ -188,50 +142,42 @@ def create_vms():
     # e1000_skb_orphan_nolock.enabled = False
     # e1000_timer_itr_reg_nolock.enabled = False
 
-    # e1000_halt.enabled = False
-    # e1000_halt_lq.enabled = False
+    vms = [
 
-    # virtio_batch.enabled = False
-    # e1000_halt_no_rdt_jump_no_itr.enabled = False
-
-    return (
-
-        # virtio,
-        virtio_batch,
+        #* virtio,
+        #* virtio_batch,
         # virtio_drop,
-        # virtio_vhost,
-        # virtio_batch_nopoll,
 
         # e1000_best_3_13,
         # e1000_best_interrupt_3_13,
         # e1000_best_interrupt,
 
-        # e1000_skb_orphan, # latest
-        # e1000_skb_orphan_nolock,
+        e1000_skb_orphan,
+        e1000_skb_orphan_nolock,
         # e1000_skb_orphan_lq_nolock,
 
         # e1000_timer_itr,
         # e1000_timer_itr_lq_4096,
         # e1000_timer_itr_parabatch,
-        # e1000_timer_itr_reg,  # latest
+        e1000_timer_itr_reg,
         # e1000_timer_itr_reg_lq,
-        # e1000_timer_itr_reg_nolock,
-
-        # e1000_halt,
-        # e1000_halt_lq,
-        # e1000_halt_no_rdt_jump,
-        # e1000_halt_no_rdt_jump_lq,
-        # e1000_halt_unlock
-
-        e1000_halt_no_rdt_jump_no_itr,
+        e1000_timer_itr_reg_nolock,
 
         # e1000_batch_interrupt,
-        # e1000_batch_interrupt_nolock,
         # e1000_best_lq
         # e1000_tso_offloading,
         # e1000_arthur,
-        # e1000_baseline,
-    )
+        #* e1000_baseline,
+    ]
+
+    multi_core_vms = list()
+    for vm in vms:
+        new_vm = deepcopy(vm)
+        new_vm.name += "-mCPU"
+        new_vm.cpu_to_pin = "1,2"
+        multi_core_vms.append(new_vm)
+
+    return vms + multi_core_vms
 
 
 if __name__ == "__main__":
@@ -246,12 +192,12 @@ if __name__ == "__main__":
     root_logger.setLevel(logging.DEBUG)
 
     additional_x = [
-        (1448, "1.5K")
+        (1488, "1.5K")
     ]
 
     test_clss = [
-        # (TestCmpThroughput, "throughput"),
-        # (TestCmpLatency, "latency"),
+        (TestCmpThroughput, "throughput"),
+        (TestCmpLatency, "latency"),
         (TestCmpThroughputTSO, "throughput-TSO"),
     ]
 

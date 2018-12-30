@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 NETPERF_CORE = 3
 
 
-def netserver_start(core = NETPERF_CORE):
-    run_command("sudo taskset -c {} netserver".format(core))
+def netserver_start(core=NETPERF_CORE, nice=0):
+    run_command("sudo taskset -c {} nice -n {} netserver".format(core, nice))
 
 
 def netserver_stop():
@@ -19,7 +19,7 @@ def netserver_stop():
 
 
 class NetPerf(Sensor):
-    def __init__(self, graph: Graph, runtime=10):
+    def __init__(self, graph: Graph = None, runtime=10):
         super(NetPerf, self).__init__(graph)
         self.runtime = runtime
         self.test = ""
@@ -92,6 +92,7 @@ class NetPerfTcpTSO(NetPerfTCP):
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
         self._static_test_params = "-C"
+        self.batch_size = None
 
     def run_netperf(self, vm: VM, title="", x="", remote_ip=None, *args, **kargs):
         try:
@@ -100,4 +101,11 @@ class NetPerfTcpTSO(NetPerfTCP):
             )
         except:
             pass
+        if self.batch_size:
+            try:
+                vm.remote_command(
+                    "echo {} > /proc/sys/net/ipv4/tcp_batch_size".format(self.batch_size)
+                )
+            except:
+                pass
         return super().run_netperf(vm, *args, title=title, x=x, remote_ip=remote_ip, **kargs)

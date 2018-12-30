@@ -5,7 +5,7 @@ from utils.vms import VM
 class Sensor:
     def __init__(self, graph: Graph):
         """
-        :param vm: VM to test on
+        :param graph: graph to generate
         """
         self.graph = graph
 

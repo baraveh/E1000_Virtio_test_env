@@ -1,9 +1,13 @@
 import logging
 import subprocess
 import shlex
+import os
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+def disable_signal():
+    os.setpgrp()
 
 
 def run_command(command_string, shell=False, cwd=None):
@@ -12,12 +16,12 @@ def run_command(command_string, shell=False, cwd=None):
         args = command_string
     else:
         args = shlex.split(command_string)
-    return subprocess.call(args, shell=shell, cwd=cwd)
+    return subprocess.call(args, shell=shell, cwd=cwd, preexec_fn=disable_signal)
 
 
 def run_command_ex(command_string, shell=False, **kargs):
     logger.debug("Run command: %s", command_string)
-    return subprocess.Popen(shlex.split(command_string), shell=shell, **kargs)
+    return subprocess.Popen(shlex.split(command_string), shell=shell, preexec_fn=disable_signal, **kargs)
 
 
 def run_command_check(command_string, shell=False, cwd=None):
@@ -26,7 +30,7 @@ def run_command_check(command_string, shell=False, cwd=None):
         cmd = shlex.split(command_string)
     else:
         cmd = command_string
-    return subprocess.check_call(cmd, shell=shell, cwd=cwd)
+    return subprocess.check_call(cmd, shell=shell, cwd=cwd, preexec_fn=disable_signal)
 
 
 def run_command_output(command_string, shell=False, log_output=True, cwd=None):
@@ -35,7 +39,7 @@ def run_command_output(command_string, shell=False, log_output=True, cwd=None):
         args = command_string
     else:
         args = shlex.split(command_string)
-    output = subprocess.check_output(args, shell=shell, cwd=cwd)
+    output = subprocess.check_output(args, shell=shell, cwd=cwd, preexec_fn=disable_signal)
     if log_output:
         logger.debug("Command output: %s", output)
     return output.decode()
@@ -58,4 +62,4 @@ def run_command_remote_ex(servername, user, command):
 
 def run_command_async(command, output_file=None, cwd=None):
     logger.debug("Run command (async): %s", command)
-    subprocess.Popen(shlex.split(command), stdout=output_file, cwd=cwd)
+    subprocess.Popen(shlex.split(command), stdout=output_file, cwd=cwd, preexec_fn=disable_signal)

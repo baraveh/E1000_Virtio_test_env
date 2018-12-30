@@ -2,7 +2,7 @@ from enum import Enum
 
 from os import path
 
-from utils.graphs import Graph, RatioGraph
+from utils.graphs import Graph, RatioGraph, FuncGraph
 from utils.sensors import Sensor, SensorBeforeAfter, DummySensor
 from utils.vms import VM, Qemu
 
@@ -49,8 +49,9 @@ class CpuUserSensor(SensorBeforeAfter):
         return value2 - value1
 
 
-def get_all_cpu_sensors(directory, prefix, normalize=None):
+def get_all_cpu_sensors(directory, prefix, normalize=None, exits_graph: Graph=None):
     result = list()
+    result_dict = dict()
     for utilType in CpuUtilizationEnum:
         sensor = CpuUserSensor(utilType,
                                Graph("Msg Size", "CPU Util {}".format(utilType.name),
@@ -60,6 +61,21 @@ def get_all_cpu_sensors(directory, prefix, normalize=None):
                                      )
                                )
         result.append(sensor)
+        result_dict[utilType.name] = sensor
+
+    if exits_graph is not None:
+        sensor = DummySensor(
+            FuncGraph(
+                lambda k, u, g, e: (k+u-g)/e,
+                result_dict["SYSTEM"].graph, result_dict["USER"].graph,
+                "Message Size [bytes]", "cost",
+                path.join(directory, "{prefix}-exit-cost".format(prefix=prefix)),
+                graph_title="Cost per Exit",
+                more_graphs=(result_dict["GUEST"].graph, exits_graph),
+            )
+        )
+        result.append(sensor)
+
     return result
 
 
@@ -73,11 +89,14 @@ class ProcCpuUtilization:
     def __init__(self, typ: ProcCpuUtilizationEnum):
         self._type = typ
 
-    def read_value(self, vm: Qemu):
+    def read_raw_line(self, vm: Qemu):
         with open("/proc/{pid}/stat".format(pid=vm.get_pid())) as f:
             line = f.readline()
             split = line.split()
-            return int(split[self._type.value])
+            return split
+
+    def read_value(self, vm: Qemu):
+        return int(self.read_raw_line(vm)[self._type.value])
 
 
 class ProcKernelUsegeSensor(SensorBeforeAfter):
@@ -117,27 +136,42 @@ class ProcUserUsegeSensor(SensorBeforeAfter):
         return value2 - value1
 
 
-def get_all_proc_cpu_sensors(directory, prefix, netperf_graph: Graph, normalize=None):
+def get_all_proc_cpu_sensors(directory, prefix, normalize=None, exits_graph: Graph = None):
     result = list()
+    result_dict = dict()
 
     for proc_sensor, name in ((ProcKernelUsegeSensor, "Kernel"),
                               (ProcGuestUsegeSensor, "Guest"),
                               (ProcUserUsegeSensor, "User")):
         sensor = proc_sensor(
-            Graph("Msg Size", "{name} Time".format(name=name),
+            Graph("Msg Size", "Process {name} Time".format(name=name),
                   path.join(directory,
                             "{prefix}-proc-cpu-{name}".format(prefix=prefix, name=name)),
                   normalize=normalize
                   )
         )
         result.append(sensor)
+        result_dict[name] = sensor
 
-        ratio_sensor = DummySensor(
-            RatioGraph(sensor.graph, netperf_graph,
-                       "msg size", "{name} time".format(name=name),
-                       path.join(directory,
-                                 "{prefix}-proc-cpu-{name}-ratio".format(prefix=prefix, name=name))
-                       )
+    if exits_graph is not None:
+        sensor = DummySensor(
+            FuncGraph(
+                lambda k, u, g, e: (k+u-g)/e,
+                result_dict["Kernel"].graph, result_dict["User"].graph,
+                "Message Size [bytes]", "cost",
+                path.join(directory, "{prefix}-exit-cost-proc".format(prefix=prefix)),
+                graph_title="Cost per Exit",
+                more_graphs=(result_dict["Guest"].graph, exits_graph),
+            )
         )
-        result.append(ratio_sensor)
+        result.append(sensor)
+
+        # ratio_sensor = DummySensor(
+        #     RatioGraph(sensor.graph, netperf_graph,
+        #                "msg size", "{name} time".format(name=name),
+        #                path.join(directory,
+        #                          "{prefix}-proc-cpu-{name}-ratio".format(prefix=prefix, name=name))
+        #                )
+        # )
+        # result.append(ratio_sensor)
     return result

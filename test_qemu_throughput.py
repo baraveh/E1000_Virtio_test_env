@@ -1,16 +1,18 @@
 from copy import deepcopy
 
-from sensors.cpu import get_all_cpu_sensors
-from sensors.interrupts import InterruptSensor
+from sensors.cpu import get_all_cpu_sensors, get_all_proc_cpu_sensors
+from sensors.interrupts import InterruptSensor, QemuInterruptDelaySensor
 from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
 from sensors.packet_num import PacketNumberSensor
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
+from sensors.sched import SchedSwitchSensor
 from utils.sensors import DummySensor
 from utils.test_base import TestBase, TestBaseNetperf
 from utils.vms import Qemu, VM, QemuE1000Max, QemuE1000NG, QemuLargeRingNG, QemuLargeRing, QemuNG
 from sensors.netperf import NetPerfTCP, NetPerfTcpTSO
-from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph, GraphRatioGnuplot, GraphScatter
+from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph, GraphRatioGnuplot, GraphScatter, FuncGraph, \
+    EmptyGraph
 
 from os import path
 
@@ -143,12 +145,61 @@ class QemuThroughputTest(TestBaseNetperf):
         )
         batch_halt_ratio.graph.log_scale_y = 2
 
-        cpu_sensors = get_all_cpu_sensors(self.dir, "throughput", self.netperf_runtime)
+        cpu_sensors = get_all_cpu_sensors(self.dir, "throughput", self.netperf_runtime, exits_graph=kvm_exits.graph)
+        cpu_proc_sensors = get_all_proc_cpu_sensors(self.dir, "throughput", self.netperf_runtime, exits_graph=kvm_exits.graph)
 
         throughput2segment_size = DummySensor(
             GraphScatter(packet_sensor_avg_size.graph, netperf_graph,
                          "sent segment size (KB)", "Throughput",
                          path.join(self.dir, "throughput-segment_throughput"))
+        )
+
+        interrupt_delay = QemuInterruptDelaySensor(
+            Graph("msg size", "Average interrupt delay",
+                  path.join(self.dir, "throughput-interrupt_delay"))
+        )
+
+        bytes_per_batch = DummySensor(
+            FuncGraph(lambda x, y: x*y,
+                      batch_size.graph, packet_sensor_avg_size.graph,
+                      "msg size", "Bytes per batch",
+                      path.join(self.dir, "throughput-batch_bytes")
+                      )
+        )
+
+        sched_switch = SchedSwitchSensor(
+            Graph("msg size", "Num of Scheduler switch (per sec)",
+                  path.join(self.dir, "throughput-context_switch"),
+                  normalize=self.netperf_runtime
+                  )
+        )
+        sched_switch_per_batch = DummySensor(
+            RatioGraph(sched_switch.graph, batch_count.graph,
+                       "msg size", "Context switch per batch",
+                       path.join(self.dir, "throughput-context_switch-ratio")
+                       )
+        )
+
+        kvm_exits_batch_ratio = DummySensor(
+            RatioGraph(kvm_exits.graph, batch_count.graph,
+                       "msg size", "Exits per batch",
+                       path.join(self.dir, "throughput-kvm_exits-batch_ratio")
+                       )
+        )
+
+        batch_time = DummySensor(
+            FuncGraph(lambda x: 1e6 / x,
+                      batch_count.graph, EmptyGraph(),
+                      "msg size", "batch duration [usec]",
+                      path.join(self.dir, "throughput-batch_time")
+                      )
+        )
+
+        interrupt_ratio_batch = DummySensor(
+            RatioGraph(interrupt_sensor.graph, batch_count.graph,
+                       "msg size", "Interrupts per batch",
+                       path.join(self.dir, "throughput-interrupts-batch")
+                       )
         )
 
         return [
@@ -165,15 +216,24 @@ class QemuThroughputTest(TestBaseNetperf):
                    kvm_halt_exits,
 
                    interrupt_ratio,
+                   interrupt_ratio_batch,
 
                    batch_size,
                    batch_descriptos_size,
                    batch_count,
                    batch_halt_ratio,
+                   bytes_per_batch,
+                   batch_time,
 
                    throughput2segment_size,
 
-               ] + cpu_sensors
+                   interrupt_delay,
+
+                   sched_switch,
+                   sched_switch_per_batch,
+
+                   kvm_exits_batch_ratio
+               ] + cpu_sensors + cpu_proc_sensors
 
     def get_vms(self):
         qemu_e1000e = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
@@ -364,7 +424,7 @@ class QemuThroughputTest(TestBaseNetperf):
             # (qemu_e1000_no_new_improv, "qemu_e1000_no_new_improv")
             # (qemu_large_queue, "qemu_large_ring_nice"),
             # (qemu_large_queue_itr6, "qemu_large_ring_nice_itr6"),
-        # (qemu_large_queue_batch_itr, "qemu_large_queue_batch_itr"),
+            # (qemu_large_queue_batch_itr, "qemu_large_queue_batch_itr"),
 
             # (qemu_e1000_best_itr, "qemu_e1000_best_itr"),
             # (self.qemu_virtio_1g, "qemu_virtio_1G"),
@@ -381,11 +441,9 @@ class QemuThroughputTest(TestBaseNetperf):
 
 
 class TestCmpThroughput(QemuThroughputTest):
-    def __init__(self, vms, *args, additional_x=None, **kargs):
+    def __init__(self, vms, *args, **kargs):
         self._test_vms = vms
         super().__init__(*args, **kargs)
-        if additional_x:
-            self._x_categories += additional_x
 
     def get_vms(self):
         assert len({vm.name for vm in self._test_vms}) == len(self._test_vms)
@@ -397,6 +455,19 @@ class TestCmpThroughputTSO(TestCmpThroughput):
 
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
+        for sensor in self._sensors:
+            sensor.graph.x_label = "TSO Frame Size [bytes]"
+
+    def get_vms(self):
+        vms = super().get_vms()
+        # for vm, name in vms:
+        #     vm.e1000_options["x-txburst"] = str(10)
+        return vms
+
+    def get_sensors(self):
+        sensors = super().get_sensors()
+        self.netperf.batch_size = 10
+        return sensors
 
 
 if __name__ == "__main__":
