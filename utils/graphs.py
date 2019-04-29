@@ -34,6 +34,8 @@ class GraphBase:
         self.json_filename = output_filename + ".json"
         self.png_filename = output_filename + ".png"
         self.data_filename2 = ""
+        self.dir_name = os.path.dirname(output_filename)
+        self.graph_name = os.path.basename(output_filename)
 
         self.data = dict()
         self.x_tics_values = []
@@ -63,17 +65,54 @@ class GraphBase:
         self.x_tics_values = values
         self.x_tics_names = labels
 
-    def create_data_file(self):
+    def create_data_file(self, data=None):
         raise NotImplementedError()
 
-    def dump_to_json(self):
-        with open(self.json_filename, "w") as f:
-            json.dump(self.data, f)
+    def dump_to_json(self, data=None):
+        if data is None:
+            data = self.data
 
-    def create_graph(self, retries):
+        with open(self.json_filename, "w") as f:
+            json.dump(data, f)
+
+    def _change_folder(self, folder):
+        self.output_filename = os.path.join(folder, self.graph_name + ".pdf")
+        self.data_filename = os.path.join(folder, self.graph_name + ".txt")
+        self.json_filename = os.path.join(folder, self.graph_name + ".json")
+        self.png_filename = os.path.join(folder, self.graph_name + ".png")
+        self.dir_name = folder
+
+    def _limit_data(self, titles_to_include):
+        new_data = dict()
+
+        for x in self.data:
+            for title in self.data[x]:
+                if title not in titles_to_include:
+                    new_data[x][title] = self.data[x][title]
+
+        return new_data
+
+    def create_graph(self, retries, titles_to_include=None, folder=None):
+        # adjust file names
+        if folder is not None:
+            old_folder = self.dir_name
+            self._change_folder(folder)
+
+        # adjust data
+        if titles_to_include is not None:
+            data=self._limit_data(titles_to_include)
+        else:
+            data = self.data
+
+        self._create_graph(retries, data=data)
+        if folder is not None:
+            self._change_folder(old_folder)
+
+    def _create_graph(self, retries, data=None):
         """
         write data to file
         run gnuplot
+        :param data:
         """
         self.create_data_file()
 
@@ -121,17 +160,23 @@ class GraphGnuplot(GraphBase):
 
         self.x_tics = "({})".format(",".join(labels_tics))
 
-    def create_data_file(self):
+    def create_data_file(self, data=None):
+        if data is None:
+            data = self.data
+            titles = self.titles
+        else:
+            titles = set((title for x in data for title in data[x]))
+
         with open(self.data_filename, "w") as f:
             f.write("title ")
-            for title in self.titles:
+            for title in titles:
                 f.write("{} ".format(title))
             f.write("\n")
-            for x in sorted(self.data, key=int):
+            for x in sorted(data, key=int):
                 f.write("{} ".format(x))
-                for title in self.titles:
+                for title in titles:
                     try:
-                        f.write("{} ".format(mean((a for a in self.data[x][title]))))
+                        f.write("{} ".format(mean((a for a in data[x][title]))))
                     except KeyError:
                         f.write("0 ")
                 f.write("\n")
@@ -168,13 +213,14 @@ clean:
     def _calc_additional_params(self):
         return ''
 
-    def create_graph(self, retries):
+    def _create_graph(self, retries, data=None):
         """
         write data to file
         run gnuplot
+        :param data:
         """
-        self.create_data_file()
-        self.dump_to_json()
+        self.create_data_file(data)
+        self.dump_to_json(data)
         self.copy_cmd_file()
         self.create_makefile()
 
@@ -223,13 +269,19 @@ class GraphMatplotlib(GraphBase):
             marker=next(self.markers),
         )
 
-    def create_graph(self, retries):
-        self.create_data_file()
-        self.dump_to_json()
+    def _create_graph(self, retries, data=None):
+        if data is None:
+            data = self.data
+            titles = self.titles
+        else:
+            titles = set((title for x in data for title in data[x]))
+
+        self.create_data_file(data)
+        self.dump_to_json(data)
 
         if self.log_scale_x:
             plt.xscale("log", basex=self.log_scale_x)
-        for title in self.titles:
+        for title in titles:
             self._plot_by_title(title)
 
         plt.xlabel(self.x_label)
@@ -237,7 +289,7 @@ class GraphMatplotlib(GraphBase):
         if self.x_tics_names:
             plt.xticks(self.x_tics_values, self.x_tics_names, rotation=45)
         else:
-            plt.xticks([x for x in self.data])
+            plt.xticks([x for x in data])
         plt.grid(True, color='0.2')
         plt.legend(fancybox=True, framealpha=0.5)
         # lgd = plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
@@ -266,19 +318,25 @@ class GraphErrorBarsGnuplot(GraphGnuplot):
         super(GraphErrorBarsGnuplot, self).__init__(*args, **kargs)
         self.script_filename = "gnuplot/plot_lines_error_bars"
 
-    def create_data_file(self):
+    def create_data_file(self, data=None):
+        if data is None:
+            data = self.data
+            titles = self.titles
+        else:
+            titles = set((title for x in data for title in data[x]))
+
         with open(self.data_filename, "w") as f:
             f.write("title ")
-            for title in self.titles:
+            for title in titles:
                 f.write("{} {}_min {}_max ".format(title, title, title))
             f.write("\n")
-            for x in sorted(self.data):
+            for x in sorted(data):
                 f.write("{} ".format(x))
-                for title in self.titles:
+                for title in titles:
                     f.write("{mean} {min} {max} ".format(
-                        mean=mean(self.data[x][title]),
-                        min=min(self.data[x][title]),
-                        max=max(self.data[x][title])
+                        mean=mean(data[x][title]),
+                        min=min(data[x][title]),
+                        max=max(data[x][title])
                     ))
                 f.write("\n")
 
@@ -296,9 +354,9 @@ class MultipleGraphs(Graph):
     def _calc_data(self):
         raise NotImplementedError()
 
-    def create_graph(self, *args, **kargs):
+    def _create_graph(self, *args, **kargs):
         self._calc_data()
-        super().create_graph(*args, **kargs)
+        super()._create_graph(*args, **kargs)
 
 
 class RatioGraph(MultipleGraphs):
@@ -325,8 +383,13 @@ class SameDataGraph(Graph):
     def dump_to_json(self):
         pass
 
-    def create_data_file(self):
+    def create_data_file(self, data=None):
         pass
+
+    def _change_folder(self, folder):
+        super()._change_folder(folder)
+        self.data_filename = os.path.join(folder, self._graph1.graph_name + ".txt")
+        self.json_filename = os.path.join(folder, self._graph1.graph_name + ".json")
 
 
 class GraphRatioGnuplot(SameDataGraph):
@@ -337,6 +400,7 @@ class GraphRatioGnuplot(SameDataGraph):
 
 
 class GraphScatter(MultipleGraphs):
+    # TODO: update to use subset of data
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
         self.script_filename = "gnuplot/plot_scatter"
@@ -354,7 +418,7 @@ class GraphScatter(MultipleGraphs):
                 for val1, val2 in zip(self.graph1.data[x][title], self.graph2.data[x][title]):
                     self.add_data(title, val1, val2)
 
-    def create_data_file(self):
+    def create_data_file(self, data=None):
         with open(self.data_filename, "w") as f:
             for title in self.titles:
                 f.write("title {}\n".format(title))

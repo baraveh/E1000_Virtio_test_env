@@ -15,7 +15,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class VM(Machine):
-    BOOTUP_WAIT = 35 #15
+    BOOTUP_WAIT = 50  # 15
     POWEROFF_WAIT = 3
     USER = "user"
 
@@ -63,7 +63,7 @@ class Qemu(VM):
     QEMU_E1000 = "e1000"
     QEMU_VIRTIO = "virtio-net-pci"
 
-    BOOTUP_WAIT = 10
+    BOOTUP_WAIT = 30
 
     def __init__(self, disk_path, guest_ip, host_ip, cpu_to_pin="2"):
         super(Qemu, self).__init__(disk_path, guest_ip, host_ip)
@@ -279,6 +279,7 @@ class Qemu(VM):
         sleep(0.5)
         if self.qemu_config:
             self.change_qemu_parameters()
+        sleep(0.5)
         if self.io_thread_cpu:
             command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
@@ -382,7 +383,7 @@ class QemuLargeRing(QemuE1000Max):
 
 class QemuNG(Qemu):
     QEMU_E1000_BETTER = 'e1000-82545em'
-    BOOTUP_WAIT = 7
+    # BOOTUP_WAIT = 50
 
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
@@ -440,6 +441,8 @@ class QemuE1000NG(QemuNG):
             # "NG_interuupt_momentum": 1,
             # "NG_interuupt_momentum_max": 20,
             "NG_disable_iothread_lock": "off",  # disable taking iothread lock in e1000 mmio
+
+            "NG_disable_TXDW": "off" # disable TXDW interrupt on TX finish
         }
 
         self.ethernet_dev = self.QEMU_E1000

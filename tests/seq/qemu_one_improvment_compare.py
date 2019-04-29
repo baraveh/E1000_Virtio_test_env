@@ -1,5 +1,6 @@
 import os
 import logging
+from socket import gethostname
 from copy import deepcopy
 
 import itertools
@@ -13,9 +14,11 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 
-RUNTIME = 30
+RUNTIME = 10
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/one_feature"
+BASE_DIR = r"/home/bdaviv/tmp/results/one_feature/{hostname}".format(
+    hostname=gethostname()
+)
 
 
 def create_vms():

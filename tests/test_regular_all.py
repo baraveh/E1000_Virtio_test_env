@@ -6,8 +6,8 @@ from utils.vms import QemuNG, Qemu, QemuE1000Max, QemuE1000NG
 from test_qemu_latency import TestCmpLatency
 from test_qemu_throughput import TestCmpThroughputTSO, TestCmpThroughput
 
-# RUNTIME = 3
-RUNTIME = 150
+RUNTIME = 15
+# RUNTIME = 150
 RETRIES = 1
 BASE_DIR = r"/home/bdaviv/tmp/results/test-results-combined/{hostname}".format(
     hostname=socket.gethostname()
@@ -180,6 +180,32 @@ def create_vms():
     e1000_halt_no_rdt_jump_no_itr.static_itr = True
     e1000_halt_no_rdt_jump_no_itr.ethernet_dev = e1000_halt_no_rdt_jump_no_itr.QEMU_E1000_BETTER
 
+    # like trace configuration
+    e1000_halt_no_rdt_jump_no_itr2 = deepcopy(e1000_halt_no_rdt_jump_no_itr)
+    e1000_halt_no_rdt_jump_no_itr2.e1000_options["NG_fast_iothread_kick"] = "off"
+    e1000_halt_no_rdt_jump_no_itr2.e1000_options["NG_force_iothread_send"] = "on"
+    e1000_halt_no_rdt_jump_no_itr2.name += "2"
+
+    #large queue
+    e1000_halt_no_rdt_jump_no_itr2_queue512 = deepcopy(e1000_halt_no_rdt_jump_no_itr2)
+    e1000_halt_no_rdt_jump_no_itr2_queue512.large_queue = True
+    e1000_halt_no_rdt_jump_no_itr2_queue512.queue_size = 512
+    e1000_halt_no_rdt_jump_no_itr2_queue512.name += "_lq{}".format(e1000_halt_no_rdt_jump_no_itr2_queue512.queue_size)
+
+    e1000_halt_no_rdt_jump_no_itr2_queue1024 = deepcopy(e1000_halt_no_rdt_jump_no_itr2)
+    e1000_halt_no_rdt_jump_no_itr2_queue1024.large_queue = True
+    e1000_halt_no_rdt_jump_no_itr2_queue1024.queue_size = 1024
+    e1000_halt_no_rdt_jump_no_itr2_queue1024.name += "_lq{}".format(e1000_halt_no_rdt_jump_no_itr2_queue1024.queue_size)
+
+    e1000_halt_no_rdt_jump_no_itr2_queue2048 = deepcopy(e1000_halt_no_rdt_jump_no_itr2)
+    e1000_halt_no_rdt_jump_no_itr2_queue2048.large_queue = True
+    e1000_halt_no_rdt_jump_no_itr2_queue2048.queue_size = 2048
+    e1000_halt_no_rdt_jump_no_itr2_queue2048.name += "_lq{}".format(e1000_halt_no_rdt_jump_no_itr2_queue2048.queue_size)
+
+    e1000_halt_no_rdt_jump_no_itr2_rx_scum_offloading = deepcopy(e1000_halt_no_rdt_jump_no_itr2)
+    e1000_halt_no_rdt_jump_no_itr2_rx_scum_offloading.name += "rx_csum"
+    e1000_halt_no_rdt_jump_no_itr2_rx_scum_offloading.e1000_options["NG_enable_rx_checksum"] = "on"
+
     # virtio.enabled = False
     # virtio_batch.enabled = False
     # e1000_skb_orphan.enabled = False
@@ -196,11 +222,11 @@ def create_vms():
 
     return (
 
-        # virtio,
-        virtio_batch,
+        virtio,
+        # virtio_batch,
         # virtio_drop,
         # virtio_vhost,
-        # virtio_batch_nopoll,
+        virtio_batch_nopoll,
 
         # e1000_best_3_13,
         # e1000_best_interrupt_3_13,
@@ -224,13 +250,18 @@ def create_vms():
         # e1000_halt_unlock
 
         e1000_halt_no_rdt_jump_no_itr,
+        e1000_halt_no_rdt_jump_no_itr2,
+        # e1000_halt_no_rdt_jump_no_itr2_rx_scum_offloading,
+        # e1000_halt_no_rdt_jump_no_itr2_queue512,
+        # e1000_halt_no_rdt_jump_no_itr2_queue1024,
+        # e1000_halt_no_rdt_jump_no_itr2_queue2048,
 
         # e1000_batch_interrupt,
         # e1000_batch_interrupt_nolock,
         # e1000_best_lq
         # e1000_tso_offloading,
         # e1000_arthur,
-        # e1000_baseline,
+        e1000_baseline,
     )
 
 
@@ -250,8 +281,8 @@ if __name__ == "__main__":
     ]
 
     test_clss = [
-        # (TestCmpThroughput, "throughput"),
-        # (TestCmpLatency, "latency"),
+        (TestCmpThroughput, "throughput"),
+        (TestCmpLatency, "latency"),
         (TestCmpThroughputTSO, "throughput-TSO"),
     ]
 

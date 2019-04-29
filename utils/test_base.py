@@ -126,9 +126,12 @@ class TestBase:
             sensor.load_old_data(vm_name)
 
     def post_run(self):
+        self.create_sensor_graphs()
+
+    def create_sensor_graphs(self, vm_names_to_include=None, folder=None):
         for sensor in self._sensors:
             try:
-                sensor.create_graph(self._retries)
+                sensor.create_graph(self._retries, vm_names_to_include=vm_names_to_include, folder=folder)
             except:
                 logger.exception("Failed to create graph %s", sensor)
 

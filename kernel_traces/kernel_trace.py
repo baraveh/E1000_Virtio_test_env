@@ -51,7 +51,7 @@ class Trace:
         return self.target.remote_command(command, **kargs)
 
     def setup(self):
-        self.trace_off()
+        # self.trace_off()
         self.disable_all_events()
         self.set_clock()
         self.set_tracer()

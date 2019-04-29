@@ -4,10 +4,18 @@ import os
 import shutil
 import argparse
 from collections import Counter, defaultdict
+from functools import partial
 from math import log2
 import sys
+import multiprocessing
+from time import sleep
 
 from kernel_traces.latency_parser2 import MainStats
+
+MSG_SIZES = (64, 128, 256, 512,
+             1024, 1448, 2048, 4096, 8192, 16384, 32768,
+             # 65536
+             )
 
 sys.path.append("../..")
 
@@ -90,7 +98,8 @@ class TracePerformance:
 
         self._host_tracer = Trace(localRoot, os.path.join(self._dir, "trace_host"))
         self._host_tracer.setup()
-        self._host_tracer.set_buffer_size(1000000)
+        self._host_tracer.set_buffer_size(2000000)
+        sleep(1)
 
         # if self._vm.cpu_to_pin:
         #     self._host_tracer.write_value("tracing_cpumask", str(1 << (int(self._vm.cpu_to_pin))))
@@ -128,8 +137,20 @@ class TracePerformance:
         # self._host_tracer.uprobe_add_event("r", "qemu_mutex_unlock_iothread_end", self._vm.exe, "qemu_mutex_unlock_iothread")
         self._host_tracer.enable_event("irq/irq_handler_entry")
         self._host_tracer.enable_event("irq/irq_handler_exit")
+        self._host_tracer.enable_event("irq_vectors")
 
         self._host_tracer.enable_event("syscalls")
+
+        # self._host_tracer.kprobe_add("p:import_iovec import_iovec")
+        # self._host_tracer.kprobe_add("r:import_iovec_end import_iovec")
+        # self._host_tracer.kprobe_add("p:tun_get_user tun_get_user")
+        # self._host_tracer.kprobe_add("r:tun_get_user_end tun_get_user")
+        #
+        # self._host_tracer.kprobe_add("p:netif_receive_skb netif_receive_skb")
+        # self._host_tracer.kprobe_add("r:netif_receive_skb_end netif_receive_skb")
+        # # self._host_tracer.enable_event("net/netif_receive_skb")
+        # # self._host_tracer.enable_event("net/netif_receive_skb_entry")
+        # # self._host_tracer.enable_event("net/netif_rx_ni_entry")
 
         self._host_tracer.kprobe_enable()
         self._host_tracer.uprobe_enable()
@@ -141,12 +162,16 @@ class TracePerformance:
 
         self._guest_tracer = Trace(self._vm.root, os.path.join(self._dir, "trace_guest"))
         self._guest_tracer.setup()
-        self._guest_tracer.set_buffer_size(200000)
+        self._guest_tracer.set_buffer_size(600000)
 
         self._guest_tracer.enable_event("power/cpu_idle")
         self._guest_tracer.enable_event("syscalls/sys_enter_sendto")
         # self._guest_tracer.enable_event("syscalls/sys_enter_recvfrom")
         self._guest_tracer.enable_event("syscalls/sys_exit_recvfrom")
+
+        #sched
+        self._guest_tracer.set_event_filter("sched/sched_switch", r'prev_comm ~ "*netperf*" || next_comm ~ "*netperf*"')
+        self._guest_tracer.enable_event("sched/sched_switch")
 
         # net
         self._guest_tracer.enable_event("net/net_dev_start_xmit")
@@ -160,6 +185,7 @@ class TracePerformance:
         # irq
         self._guest_tracer.enable_event("irq/irq_handler_entry")
         self._guest_tracer.enable_event("irq/irq_handler_exit")
+        self._host_tracer.enable_event("irq_vectors")
 
         self._guest_tracer.enable_event("napi")
 
@@ -176,6 +202,40 @@ class TracePerformance:
 
         self._guest_tracer.kprobe_add("p:e1000_update_stats e1000_update_stats")
         self._guest_tracer.kprobe_add("r:e1000_update_stats_end e1000_update_stats")
+
+        # recieve checksum validation
+        self._guest_tracer.kprobe_add("p:dev_gro_receive dev_gro_receive")
+        self._guest_tracer.kprobe_add("r:dev_gro_receive_end dev_gro_receive")
+
+        # tcp stack boundries
+        self._guest_tracer.kprobe_add("p:netif_receive_skb_internal netif_receive_skb_internal")
+        self._guest_tracer.kprobe_add("r:netif_receive_skb_internal_end netif_receive_skb_internal")
+        self._guest_tracer.kprobe_add("p:dev_hard_start_xmit dev_hard_start_xmit")
+        self._guest_tracer.kprobe_add("r:dev_hard_start_xmit_end dev_hard_start_xmit")
+
+        # self._guest_tracer.kprobe_add("p:ip_rcv_finish ip_rcv_finish")
+        # self._guest_tracer.kprobe_add("r:ip_rcv_finish_end ip_rcv_finish")
+        # self._guest_tracer.kprobe_add("p:tcp_write_xmit tcp_write_xmit")
+        # self._guest_tracer.kprobe_add("r:tcp_write_xmit_end tcp_write_xmit")
+        #
+        # self._guest_tracer.kprobe_add("p:dev_queue_xmit dev_queue_xmit")
+        # self._guest_tracer.kprobe_add("r:dev_queue_xmit_end dev_queue_xmit")
+        #
+        # self._guest_tracer.kprobe_add("p:tcp_v4_rcv tcp_v4_rcv")
+        # self._guest_tracer.kprobe_add("r:tcp_v4_rcv_end tcp_v4_rcv")
+        #
+        # for n in ("tcp_v4_do_rcv", "tcp_rcv_established", "__tcp_push_pending_frames", "tcp_write_xmit"):
+        #     self._guest_tracer.kprobe_add("p:{name} {name}".format(name=n))
+        #     self._guest_tracer.kprobe_add("r:{name}_end {name}".format(name=n))
+
+        # self._guest_tracer.kprobe_add("p:validate_xmit_skb_list validate_xmit_skb_list")
+        # self._guest_tracer.kprobe_add("r:validate_xmit_skb_list_end validate_xmit_skb_list")
+
+        # self._guest_tracer.kprobe_add("p:tcp_ack tcp_ack")
+        # self._guest_tracer.kprobe_add("r:tcp_ack_end tcp_ack")
+
+        # self._guest_tracer.write_value("current_tracer", "function_graph")
+        # self._guest_tracer.write_value("set_graph_function", "netif_receive_skb_internal")
 
         self._guest_tracer.kprobe_enable()
         self._guest_tracer.uprobe_enable()
@@ -224,13 +284,17 @@ class TracePerformance:
             try:
                 self._guest_tracer.read_trace_once(to_file=True)
                 self._host_tracer.read_trace_once(to_file=True, cpu="2")
-                self._host_tracer.read_trace_once(to_file=True, filename=os.path.join(self._dir, "full_trace"))
+                # self._host_tracer.read_trace_once(to_file=True, filename=os.path.join(self._dir, "full_trace"))
+                self._host_tracer.set_buffer_size(1000)
             except:
                 import traceback
                 traceback.print_exc()
             self.copy_maps()
             self._vm.teardown()
-            self._host_tracer.disable_all_events()
+            try:
+                self._host_tracer.disable_all_events()
+            except:
+                pass
 
         self.merge_traces()
 
@@ -239,24 +303,25 @@ class TracePerformance:
         os.makedirs(os.path.join(self._dir, "new"), exist_ok=True)
         # new_stats.attr = "time_median"
         new_stats.attr = "time_avg"
-        new_stats.run()
+        new_stats.run(new_stats.TYP_VIRTIO if "virtio" in self._vm.name else new_stats.TYP_E1000)
 
-        exits_stats(self.trace_parser, self._dir, self._title)
-        if isinstance(self._netperf, NetPerfLatency):
-            # Latency only
-            latency_split_to_time_portions(self.trace_parser, self._dir, self._title)
-        else:
-            # Throughput only
-            throughput_split_to_time_portions(self.trace_parser, self._dir, self._title)
+        # exits_stats(self.trace_parser, self._dir, self._title)
+        # if isinstance(self._netperf, NetPerfLatency):
+        #     # Latency only
+        #     latency_split_to_time_portions(self.trace_parser, self._dir, self._title)
+        # else:
+        #     # Throughput only
+        #     throughput_split_to_time_portions(self.trace_parser, self._dir, self._title)
 
 
 def create_vm_base():
     base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
-    base.bootwait = 10
+    base.bootwait = 30
     base.netserver_core = 3
     # base.netserver_nice = -10
+    base.mem = 1024 * 6
     return base
 
 
@@ -264,9 +329,9 @@ def create_vm_e1000_base():
     vm = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
                      guest_ip="10.10.0.43",
                      host_ip="10.10.0.44")
-    vm.bootwait = 10
+    vm.bootwait = 30
     vm.netserver_core = 3
-    # vm.netserver_nice = -19
+    vm.mem = 1024*6
     return vm
 
 
@@ -281,6 +346,8 @@ def create_vm_virtio_batch():
     virio = create_vm_virtio()
     virio.e1000_options["NG_notify_batch"] = "on"
     virio.name += "-batch"
+    virio.is_io_thread_nice = True
+    virio.io_nice = 1
     return virio
 
 
@@ -353,6 +420,25 @@ def create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr():
     return e1000_no_itr
 
 
+def create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr2():
+    # force iothread from kick!
+    e1000_no_itr = create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr()
+    e1000_no_itr.e1000_options["NG_force_iothread_send"] = "on"
+    e1000_no_itr.e1000_options["NG_fast_iothread_kick"] = "off"
+    # e1000_no_itr.e1000_options["NG_force_iothread_wait_recv"] = "on"
+    e1000_no_itr.name += "2"
+    e1000_no_itr.is_io_thread_nice = True
+    e1000_no_itr.io_nice = -1
+    return e1000_no_itr
+
+
+def create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr2_rxcsum():
+    e1000_no_itr = create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr2()
+    e1000_no_itr.e1000_options["NG_enable_rx_checksum"] = "on"
+    e1000_no_itr.name += "_rxcsum"
+    return e1000_no_itr
+
+
 VMS = {
     "virtio": create_vm_virtio,
     "virtio_batch": create_vm_virtio_batch,
@@ -364,6 +450,8 @@ VMS = {
     "e1000_halt_no_rdt_sim": create_vm_e1000_halt_no_rdt_send_recv_kick,
     "e1000_halt_no_rdt_sim_intr": create_vm_e1000_halt_no_rdt_send_recv_kick_intr,
     "e1000_halt_no_rdt_sim_intr_no_itr": create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr,
+    "e1000_halt_no_rdt_sim_intr_no_itr2": create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr2,
+    "e1000_halt_no_rdt_sim_intr_no_itr2_rxcsum": create_vm_e1000_halt_no_rdt_send_recv_kick_intr_no_itr2_rxcsum,
 }
 
 
@@ -379,13 +467,34 @@ def create_arg_parser():
     arg_parser.add_argument("--stats-only", action="store_true", default=False)
     arg_parser.add_argument("--auto-dir", action="store_true", default=False)
     arg_parser.add_argument("--name", default=None)
+    arg_parser.add_argument("--multi", action="store_true", default=False)
+    arg_parser.add_argument("--batch", action="store_true", default=False)
     arg_parser.add_argument("directory")
     return arg_parser
 
 
-def main():
+def stats_only(vm, netperf, msg_size, directory, title, auto_dir, name):
+    perf = TracePerformance(vm=vm,
+                            netperf=netperf,
+                            msg_size=msg_size,
+                            directory=directory,
+                            title=vm,
+                            auto_dir=auto_dir,
+                            name=name,
+                            )
+    perf.init_env(False)
+    perf.stats()
+
+
+def parse_args():
     arg_parser = create_arg_parser()
     args = arg_parser.parse_args()
+    return args
+
+
+def runner(args):
+    # arg_parser = create_arg_parser()
+    # args = arg_parser.parse_args()
 
     if args.latency:
         netperf = NetPerfLatency(runtime=args.runtime)
@@ -402,21 +511,49 @@ def main():
         vm.e1000_options["x-txburst"] = str(args.batch_size)
         netperf.batch_size = int(args.batch_size)
 
-    perf = TracePerformance(vm=vm,
-                            netperf=netperf,
-                            msg_size=args.msg_size,
-                            directory=args.directory,
-                            title=args.vm,
-                            auto_dir=args.auto_dir,
-                            name=args.name,
-                            )
-    if not args.stats_only:
-        perf.init_env(True)
-        perf.run()
-    else:
-        perf.init_env(False)
+    if not args.multi:
+        perf = TracePerformance(vm=vm,
+                                netperf=netperf,
+                                msg_size=args.msg_size,
+                                directory=args.directory,
+                                title=args.vm,
+                                auto_dir=args.auto_dir,
+                                name=args.name,
+                                )
+        if not args.stats_only:
+                perf.init_env(True)
+                perf.run()
+        else:
+            perf.init_env(False)
 
-    perf.stats()
+        perf.stats()
+
+    if args.multi:
+        stats_func = partial(stats_only,
+                             vm=vm,
+                             netperf=netperf,
+
+                             directory=args.directory,
+                             title=args.vm,
+                             auto_dir=args.auto_dir,
+                             name=args.name,
+                             )
+        pool = multiprocessing.Pool(processes=4)
+        for size in MSG_SIZES:
+            print("start run for ", size)
+            pool.apply_async(stats_func, kwds={'msg_size': size})
+        pool.close()
+        pool.join()
+
+
+def main():
+    args = parse_args()
+    if args.batch:
+        for size in MSG_SIZES:
+            args.msg_size = size
+            runner(args)
+    else:
+        runner(args)
 
 
 def pm(*args):

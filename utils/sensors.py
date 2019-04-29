@@ -22,8 +22,8 @@ class Sensor:
     def set_x_tics(self, labels, values):
         self.graph.set_x_tics(labels=labels, values=values)
 
-    def create_graph(self, retries):
-        self.graph.create_graph(retries)
+    def create_graph(self, retries, vm_names_to_include=None, folder=None):
+        self.graph.create_graph(retries, titles_to_include=vm_names_to_include, folder=folder)
 
     def load_old_data(self, vm_name):
         self.graph.load_old_results(vm_name)

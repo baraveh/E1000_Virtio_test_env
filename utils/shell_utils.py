@@ -39,7 +39,7 @@ def run_command_output(command_string, shell=False, log_output=True, cwd=None):
         args = command_string
     else:
         args = shlex.split(command_string)
-    output = subprocess.check_output(args, shell=shell, cwd=cwd, preexec_fn=disable_signal)
+    output = subprocess.check_output(args, shell=shell, cwd=cwd, preexec_fn=disable_signal, stdin=subprocess.DEVNULL)
     if log_output:
         logger.debug("Command output: %s", output)
     return output.decode()

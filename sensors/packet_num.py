@@ -18,9 +18,9 @@ class PacketNumberSensor(Sensor):
         self.packet_count_graph.set_x_tics(labels=labels, values=values)
         self.packet_size_graph.set_x_tics(labels=labels, values=values)
 
-    def create_graph(self, retries):
-        self.packet_count_graph.create_graph(retries)
-        self.packet_size_graph.create_graph(retries)
+    def create_graph(self, retries, vm_names_to_include=None, folder=None):
+        self.packet_count_graph.create_graph(retries, titles_to_include=vm_names_to_include, folder=folder)
+        self.packet_size_graph.create_graph(retries, titles_to_include=vm_names_to_include, folder=folder)
 
     def test_before(self, vm: Qemu):
         vm.change_qemu_parameters({"count_packets_from_guest_on": 1})
