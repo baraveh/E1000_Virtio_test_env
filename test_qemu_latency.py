@@ -38,9 +38,9 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
         ret = super(LatencyTest, self).get_sensors
         self.netperf = netperf.NetPerfLatency(
             # GraphErrorBarsGnuplot
-            Graph("Message size [bytes]", "Transactions/Sec",
+            Graph("message size [bytes]", "transactions/sec",
                                   path.join(self.dir, "latency"),
-                                  graph_title="Latency(%s sec)" % (self.netperf_runtime,)),
+                                  graph_title="latency"),
             runtime=self.netperf_runtime
         )
         # self.netperf.graph.script_filename = "gnuplot/plot_columns_latency"
@@ -48,58 +48,58 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
         letency_us = DummySensor(
             FuncGraph(lambda x1: 1 / x1 * 1000 * 1000,
                       self.netperf.graph, EmptyGraph(),
-                      "Message Size [bytes]", "uSec",
+                      "message size [bytes]", "usec",
                       path.join(self.dir, "latency-time"),
-                      graph_title="Latency (%s sec)" % (self.netperf_runtime,))
+                      graph_title="Latency")
         )
 
         interrupt_sensor = InterruptSensor(
-            Graph("msg size", "interrupt count (per sec)",
+            Graph("message size", "interrupt count (per sec)",
                   path.join(self.dir, "latency-interrupts"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits = KvmExitsSensor(
-            Graph("msg size", "exits count (per sec)",
+            Graph("message size", "exits count (per sec)",
                   path.join(self.dir, "latency-kvm_exits"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits_ratio = DummySensor(
             RatioGraph(kvm_exits.graph, self.netperf.graph,
-                       "msg size", "Exits per transaction",
+                       "message size", "Exits per transaction",
                        path.join(self.dir, "latency-kvm_exits-ratio"),
                        graph_title="KVM exits per transaction")
         )
 
         kvm_halt_exits = KvmHaltExitsSensor(
-            GraphErrorBarsGnuplot("msg size", "Halt exits count (per sec)",
+            GraphErrorBarsGnuplot("message size", "Halt exits count (per sec)",
                                   path.join(self.dir, "latency-kvm_halt_exits"),
                                   normalize=self.netperf_runtime)
         )
 
         kvm_halt_exits_ratio = DummySensor(
             RatioGraph(kvm_halt_exits.graph, self.netperf.graph,
-                       "msg size", "Halt Exits per transaction",
+                       "message size", "Halt Exits per transaction",
                        path.join(self.dir, "latency-kvm_halt_exits-ratio"),
                        graph_title="KVM Haly exits per transaction")
         )
 
         packet_sensor_tx_bytes = PacketRxBytesSensor(
-            Graph("msg size", "Total TX size(Mb)",
+            Graph("message size", "Total TX size(Mb)",
                   path.join(self.dir, "latency-tx_bytes"),
                   normalize=self.netperf_runtime * 1000 * 1000 / 8
                   )
         )
         packet_sensor_tx_packets = PacketRxPacketsSensor(
-            Graph("msg size", "Total TX packets",
+            Graph("message size", "Total TX packets",
                   path.join(self.dir, "latency-tx_packets"),
                   normalize=self.netperf_runtime)
         )
 
         packet_sensor_avg_size = DummySensor(
             RatioGraph(packet_sensor_tx_bytes.graph, packet_sensor_tx_packets.graph,
-                       "msg size", "TX Packet Size (KB)",
+                       "message size", "TX Packet Size (KB)",
                        path.join(self.dir, "latency-tx_packet-size"),
                        normalize=8 * 0.001
                        )
@@ -107,40 +107,40 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
 
         interrupt_ratio = DummySensor(
             RatioGraph(interrupt_sensor.graph, self.netperf.graph,
-                       "msg size", "Interrupts per transaction",
+                       "message size", "interrupts per transaction",
                        path.join(self.dir, "latency-interrupts-ratio"))
         )
 
         batch_size = QemuBatchSizeSensor(
-            Graph("msg size", "Average batch size (in packets)",
+            Graph("message size", "average batch size (in packets)",
                   path.join(self.dir, "latency-batch_size"))
         )
 
         batch_descriptos_size = QemuBatchDescriptorsSizeSensor(
-            Graph("msg size", "Average batch size (in descriptors)",
+            Graph("message size", "average batch size (in descriptors)",
                   path.join(self.dir, "latency-batch_descriptors_size"))
         )
 
         batch_count = QemuBatchCountSensor(
-            Graph("msg size", "Average batch Count (per Sec)",
+            Graph("message size", "average batch count (per sec)",
                   path.join(self.dir, "latency-batch_count"),
                   normalize=self.netperf_runtime)
         )
 
         interrupt_delay = QemuInterruptDelaySensor(
-            Graph("msg size", "Average interrupt delay",
+            Graph("message size", "average interrupt delay",
                   path.join(self.dir, "latency-interrupt_delay"))
         )
 
         sched_switch = SchedSwitchSensor(
-            Graph("msg size", "Num of Scheduler switch (per sec)",
+            Graph("message size", "num of scheduler switch (per sec)",
                   path.join(self.dir, "latency-context_switch"),
                   normalize=self.netperf_runtime
                   )
         )
         sched_switch_per_batch = DummySensor(
             RatioGraph(sched_switch.graph, self.netperf.graph,
-                       "msg size", "Context switch per transaction",
+                       "message size", "context switch per transaction",
                        path.join(self.dir, "latency-context_switch-ratio")
                        )
         )

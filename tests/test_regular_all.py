@@ -163,6 +163,7 @@ def create_vms():
     e1000_halt_no_rdt_jump = deepcopy(e1000_halt)
     e1000_halt_no_rdt_jump.name += "-no_rdt_jump"
     e1000_halt_no_rdt_jump.e1000_options["NG_disable_rdt_jump"] = "on"
+    e1000_halt_no_rdt_jump.e1000_options["NG_disable_TXDW"] = "on"
     e1000_halt_no_rdt_jump.e1000_options["NG_fast_iothread_kick"] = "on"
     e1000_halt_no_rdt_jump.disable_kvm_poll = True
 

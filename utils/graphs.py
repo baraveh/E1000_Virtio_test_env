@@ -65,7 +65,7 @@ class GraphBase:
         self.x_tics_values = values
         self.x_tics_names = labels
 
-    def create_data_file(self, data=None):
+    def create_data_file(self, data=None, titles=None):
         raise NotImplementedError()
 
     def dump_to_json(self, data=None):
@@ -80,15 +80,15 @@ class GraphBase:
         self.data_filename = os.path.join(folder, self.graph_name + ".txt")
         self.json_filename = os.path.join(folder, self.graph_name + ".json")
         self.png_filename = os.path.join(folder, self.graph_name + ".png")
+        self.commnad_file = os.path.join(folder, self.graph_name + ".command")
         self.dir_name = folder
 
     def _limit_data(self, titles_to_include):
-        new_data = dict()
+        new_data = defaultdict(dict)
 
         for x in self.data:
-            for title in self.data[x]:
-                if title not in titles_to_include:
-                    new_data[x][title] = self.data[x][title]
+            for title in titles_to_include:
+                new_data[x][title] = self.data[x].get(title, 0)
 
         return new_data
 
@@ -104,17 +104,18 @@ class GraphBase:
         else:
             data = self.data
 
-        self._create_graph(retries, data=data)
+        self._create_graph(retries, data=data, titles=titles_to_include)
         if folder is not None:
             self._change_folder(old_folder)
 
-    def _create_graph(self, retries, data=None):
+    def _create_graph(self, retries, data=None, titles=None):
         """
         write data to file
         run gnuplot
+        :param titles:
         :param data:
         """
-        self.create_data_file()
+        self.create_data_file(data, titles)
 
         raise NotImplementedError()
 
@@ -148,7 +149,7 @@ class GraphGnuplot(GraphBase):
         self.script_filename = "gnuplot/plot_lines_message_size_ticks"
         assert isinstance(args[2], str)
         self.command_file = args[2] + ".command"
-        self.dir_name = os.path.dirname(self.output_filename)
+        # self.dir_name = os.path.dirname(self.output_filename)
         self._real_script_filename = ''
 
     def set_x_tics(self, values, labels):
@@ -160,12 +161,12 @@ class GraphGnuplot(GraphBase):
 
         self.x_tics = "({})".format(",".join(labels_tics))
 
-    def create_data_file(self, data=None):
+    def create_data_file(self, data=None, titles=None):
         if data is None:
             data = self.data
+
+        if titles is None:
             titles = self.titles
-        else:
-            titles = set((title for x in data for title in data[x]))
 
         with open(self.data_filename, "w") as f:
             f.write("title ")
@@ -194,6 +195,7 @@ class GraphGnuplot(GraphBase):
 COMMANDS:=$(wildcard *.command)
 PDFS:=$(patsubst %.command,%.pdf,$(COMMANDS))
 PNGS:=$(patsubst %.command,%.png,$(COMMANDS))
+PLOT:=$(shell awk 'NF>1{print $$NF}' ${COMMANDS} | sort|uniq )
 
 all: $(PDFS) $(PNGS)
 \t@#-find -name '*.command' | xargs -l bash -x
@@ -202,7 +204,7 @@ all: $(PDFS) $(PNGS)
 %.png: %.pdf
 \tconvert -density 150 $^ -flatten -quality 90 $@
 
-%.pdf: %.command
+%.pdf: %.command $(PLOT)
 \t@cat ./$*.command
 \tbash ./$*.command
 
@@ -210,21 +212,22 @@ clean:
 \trm -f *.pdf *.png
                 """)
 
-    def _calc_additional_params(self):
+    def _calc_additional_params(self, data=None, titles=None):
         return ''
 
-    def _create_graph(self, retries, data=None):
+    def _create_graph(self, retries, data=None, titles=None):
         """
         write data to file
         run gnuplot
+        :param titles:
         :param data:
         """
-        self.create_data_file(data)
+        self.create_data_file(data, titles)
         self.dump_to_json(data)
         self.copy_cmd_file()
         self.create_makefile()
 
-        addition = self._calc_additional_params()
+        addition = self._calc_additional_params(data, titles)
         if self.log_scale_x > 1:
             addition += "log_scale_x='{log}'; ".format(log=self.log_scale_x)
         if self.log_scale_y > 1:
@@ -251,7 +254,7 @@ clean:
                         addition=addition,
                         script=os.path.basename(self.script_filename)
                   )
-        with open(self.command_file, "w") as f:
+        with open(os.path.join(self.dir_name, self.graph_name + ".command"), "w") as f:
             f.write(command)
             f.write("\n")
         run_command_check(command, cwd=self.dir_name)
@@ -269,14 +272,14 @@ class GraphMatplotlib(GraphBase):
             marker=next(self.markers),
         )
 
-    def _create_graph(self, retries, data=None):
+    def _create_graph(self, retries, data=None, titles=None):
         if data is None:
             data = self.data
-            titles = self.titles
-        else:
-            titles = set((title for x in data for title in data[x]))
 
-        self.create_data_file(data)
+        if titles is None:
+            titles = self.titles
+
+        self.create_data_file(data, titles)
         self.dump_to_json(data)
 
         if self.log_scale_x:
@@ -318,12 +321,12 @@ class GraphErrorBarsGnuplot(GraphGnuplot):
         super(GraphErrorBarsGnuplot, self).__init__(*args, **kargs)
         self.script_filename = "gnuplot/plot_lines_error_bars"
 
-    def create_data_file(self, data=None):
+    def create_data_file(self, data=None, titles=None):
         if data is None:
             data = self.data
-            titles = self.titles
-        else:
-            titles = set((title for x in data for title in data[x]))
+
+        if titles is None:
+            titles = self.title
 
         with open(self.data_filename, "w") as f:
             f.write("title ")
@@ -380,10 +383,10 @@ class SameDataGraph(Graph):
         self.data_filename = graph1.data_filename
         self.json_filename = graph1.json_filename
 
-    def dump_to_json(self):
+    def dump_to_json(self, data=None):
         pass
 
-    def create_data_file(self, data=None):
+    def create_data_file(self, data=None, titles=None):
         pass
 
     def _change_folder(self, folder):
@@ -418,16 +421,22 @@ class GraphScatter(MultipleGraphs):
                 for val1, val2 in zip(self.graph1.data[x][title], self.graph2.data[x][title]):
                     self.add_data(title, val1, val2)
 
-    def create_data_file(self, data=None):
+    def create_data_file(self, data=None, titles=None):
+        if titles is None:
+            titles = self.titles
+
         with open(self.data_filename, "w") as f:
-            for title in self.titles:
+            for title in titles:
                 f.write("title {}\n".format(title))
                 for x, y in self._scatter_data[title]:
                     f.write("{} {}\n".format(x, y))
                 f.write("\n\n")
 
-    def _calc_additional_params(self):
-        return "blocks_num='{blocks}'; ".format(blocks=len(self.titles))
+    def _calc_additional_params(self, data=None, titles=None):
+        if titles is None:
+            titles = self.titles
+
+        return "blocks_num='{blocks}'; ".format(blocks=len(titles))
 
 
 class EmptyGraph(Graph):

@@ -49,7 +49,7 @@ if (columns_num == 3){
     plot \
          data_filename using 1:2 with linespoints title col lt rgb "green", \
          data_filename using 1:3 with linespoints title col lt rgb "red", \
-         data_filename using 1:2:(sprintf("%.1f", $2/$3)) with labels notitle
+         data_filename using 1:3:(sprintf("%.1f", $3/$2)) with labels offset 0,0.6 notitle
 } else {
     plot for [i=2:columns_num] data_filename using 1:i with linespoints title col ls i-1
 }

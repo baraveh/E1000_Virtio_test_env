@@ -26,6 +26,7 @@ class VM(Machine):
         self.ip_host = host_ip
         self.bootwait = self.BOOTUP_WAIT
         self.netperf_test_params = ""
+        self.guest_configure_commands = list()
 
     def get_info(self, old_info=None):
         DISK_PATH = "disk_path"
@@ -41,7 +42,8 @@ class VM(Machine):
         raise NotImplementedError()
 
     def configure_guest(self):
-        pass
+        for cmd in self.guest_configure_commands:
+            self.remote_command(cmd)
 
     def shutdown(self):
         self.remote_command("poweroff")
@@ -77,7 +79,7 @@ class Qemu(VM):
         self.ethernet_dev = self.QEMU_E1000  # can be "virtio-net-pci" or "e1000"
         self.vhost = False
         self.sidecore = False
-        self.mem = "4096"
+        self.mem = "8192"
 
         self.io_thread_cpu = ""
 
@@ -107,6 +109,8 @@ class Qemu(VM):
         self.qemu_additionals = ""
 
         self.disable_kvm_poll = False
+
+        self.guest_e1000_ng_flag = 0
 
         self.qmp = None
 
@@ -146,6 +150,9 @@ class Qemu(VM):
             info[MEM] = self.mem
             info[NICE] = (self.is_io_thread_nice, self.io_nice)
         return info
+
+    def run(self, configure_guest=True):
+        super().run(configure_guest)
 
     def create_tun(self):
         """
@@ -239,12 +246,15 @@ class Qemu(VM):
         self.pidfile = NamedTemporaryFile()
 
         kernel_spicific_boot = ""
+        kernel_command_line = self.kernel_cmdline_additional
+        if "e1000.NG_flags" not in self.kernel_cmdline_additional and self.guest_e1000_ng_flag != 0:
+            kernel_command_line += " e1000.NG_flags={}".format(self.guest_e1000_ng_flag)
         if self.kernel:
             kernel_spicific_boot = "-kernel {kernel} -initrd {initrd} -append '{cmdline} {cmdline_more}'".format(
                 kernel=self.kernel,
                 initrd=self.initrd,
                 cmdline=self.kernel_cmdline,
-                cmdline_more=self.kernel_cmdline_additional
+                cmdline_more=kernel_command_line
             )
 
         qemu_command = "taskset -c {cpu} numactl -m 0 {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
@@ -316,7 +326,7 @@ class Qemu(VM):
         os.kill(pid, signal.SIGUSR1)
 
     def configure_guest(self):
-        pass
+        super().configure_guest()
 
     def _configure_host(self):
         pass
@@ -360,6 +370,7 @@ class QemuE1000Max(Qemu):
             pass
 
     def configure_guest(self):
+        super().configure_guest()
         commands = (
             "echo 1 | sudo tee /proc/sys/debug/kernel/srtt_patch_on",
             "echo 1 | sudo tee /proc/sys/net/ipv4/tcp_srtt_patch",
@@ -396,6 +407,7 @@ class QemuNG(Qemu):
         return "," + ",".join(("%s=%s" % (k, v) for k, v in self.e1000_options.items()))
 
     def configure_guest(self):
+        logger.info("**********: %s", self.guest_configure_commands)
         super().configure_guest()
         if self.large_queue:
             self.remote_command("sudo ethtool -G eth0 rx {}".format(self.queue_size))
@@ -469,6 +481,42 @@ class QemuE1000NG(QemuNG):
 
         if self.addiotional_guest_command:
             self.remote_command(self.addiotional_guest_command)
+
+
+class QemuE1000NGBest(QemuE1000NG):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.e1000_options.update({
+            "NG_no_checksum": "on",
+            "NG_no_tcp_seg": "on",
+            "NG_tx_iothread": "on",
+            "NG_parahalt": "on",
+            "NG_interrupt_mode": 0,
+            "NG_interrupt_mul": 0,
+            "mitigation": "off",
+            "NG_disable_rdt_jump": "on",
+            "NG_vsend": "on",
+            "NG_pcix": "on",
+        })
+        self.guest_e1000_ng_flag = 1
+
+
+class QemuE1000NGAdaptive(QemuE1000NG):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.e1000_options.update({
+            "NG_no_checksum": "on",
+            "NG_no_tcp_seg": "on",
+            "NG_tx_iothread": "on",
+            # "NG_parahalt": "on",
+            "NG_interrupt_mode": 3,
+            "NG_interrupt_mul": 1,
+            # "mitigation": "off",
+            "NG_disable_rdt_jump": "on",
+            "NG_vsend": "on",
+            "NG_pcix": "on",
+        })
+        self.guest_e1000_ng_flag = 1
 
 
 class QemuLargeRingNG(QemuE1000NG):

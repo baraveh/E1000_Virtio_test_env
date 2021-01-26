@@ -358,6 +358,14 @@ def create_vm_virtio_vhost():
     return virtio
 
 
+def create_vm_virtio_exits():
+    virtio = create_vm_virtio()
+    virtio.name += "-exits"
+    virtio.is_io_thread_nice = True
+    virtio.io_nice = 10
+    return virtio
+
+
 def create_vm_e1000():
     e1000_baseline = create_vm_base()
     e1000_baseline.ethernet_dev = e1000_baseline.QEMU_E1000
@@ -390,6 +398,7 @@ def create_vm_e1000_halt():
 def create_vm_e1000_halt_no_rdt():
     e1000_halt = create_vm_e1000_halt()
     e1000_halt.e1000_options["NG_disable_rdt_jump"] = "on"
+    e1000_halt.e1000_options["NG_disable_TXDW"] = "on"
     e1000_halt.name += "-no_rdt"
     return e1000_halt
 
@@ -443,6 +452,7 @@ VMS = {
     "virtio": create_vm_virtio,
     "virtio_batch": create_vm_virtio_batch,
     "virtio_vhost": create_vm_virtio_vhost,
+    "virtio_exits": create_vm_virtio_exits,
     "e1000-baseline": create_vm_e1000,
     "e1000_skb_orphan": create_vm_e1000_skb_orphan,
     "e1000_halt": create_vm_e1000_halt,

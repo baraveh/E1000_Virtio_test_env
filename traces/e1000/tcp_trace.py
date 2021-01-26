@@ -91,6 +91,7 @@ def create_vm_e1000_halt():
 def create_vm_e1000_halt_no_rdt():
     e1000_halt = create_vm_e1000_halt()
     e1000_halt.e1000_options["NG_disable_rdt_jump"] = "on"
+    e1000_halt.e1000_options["NG_disable_TXDW"] = "on"
     e1000_halt.name += "-no_rdt"
     return e1000_halt
 

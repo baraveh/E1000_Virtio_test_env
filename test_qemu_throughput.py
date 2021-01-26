@@ -50,97 +50,97 @@ class QemuThroughputTest(TestBaseNetperf):
         ]
 
     def get_sensors(self):
-        netperf_graph = Graph("msg size",
-                              "Throughput (Mb/s)",
+        netperf_graph = Graph("message size",
+                              "",
                               path.join(self.dir, "throughput"),
-                              graph_title="throughput (%s sec)" % (self.netperf_runtime,))
+                              graph_title="throughput (mbps)")
         self.netperf = self.NETPERF_CLS(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
-        #     Graph("msg size", "packet number", r"/home/bdaviv/tmp/packet_num.pdf", r"/home/bdaviv/tmp/packet_num.txt"),
-        #     Graph("msg size", "average packet size", r"/home/bdaviv/tmp/packet_size.pdf", r"/home/bdaviv/tmp/packet_size.txt")
+        #     Graph("message size", "packet number", r"/home/bdaviv/tmp/packet_num.pdf", r"/home/bdaviv/tmp/packet_num.txt"),
+        #     Graph("message size", "average packet size", r"/home/bdaviv/tmp/packet_size.pdf", r"/home/bdaviv/tmp/packet_size.txt")
         # )
         netperf_graph_ratio = DummySensor(
             GraphRatioGnuplot(
                 netperf_graph,
-                "msg size",
-                "Throughput (log ratio to first)",
+                "message size",
+                "throughput (log ratio to first)",
                 path.join(self.dir, "throughput-ratio"),
                 graph_title="throughput (%s sec)" % (self.netperf_runtime,)
             )
         )
 
         packet_sensor_tx_bytes = PacketRxBytesSensor(
-            Graph("msg size", "TX size per second (Mb)",
+            Graph("message size", "TX size per second (Mb)",
                   path.join(self.dir, "throughput-tx_bytes"),
                   normalize=self.netperf_runtime*1000*1000/8
                   )
         )
         packet_sensor_tx_packets = PacketRxPacketsSensor(
-            Graph("msg size", "Total TX packets",
+            Graph("message size", "total tx packets",
                   path.join(self.dir, "throughput-tx_packets"),
                   normalize=self.netperf_runtime)
         )
 
         packet_sensor_avg_size = DummySensor(
             RatioGraph(packet_sensor_tx_bytes.graph, packet_sensor_tx_packets.graph,
-                       "msg size", "TX Packet Size (KB)",
+                       "message size", "tx packet size (KB)",
                        path.join(self.dir, "throughput-tx_packet_size"),
                        normalize=8 * 0.001
                        )
         )
 
         interrupt_sensor = InterruptSensor(
-            Graph("msg size", "interrupt count (per sec)",
+            Graph("message size", "interrupt count (per sec)",
                   path.join(self.dir, "throughput-interrupts"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits = KvmExitsSensor(
-            Graph("msg size", "exits count (per sec)",
+            Graph("message size", "exits count (per sec)",
                   path.join(self.dir, "throughput-kvm_exits"),
                   normalize=self.netperf_runtime)
         )
 
         kvm_exits_ratio = DummySensor(
             RatioGraph(kvm_exits.graph, packet_sensor_tx_packets.graph,
-                       "msg size", "Exits per Packet",
+                       "message size", "exits per Packet",
                        path.join(self.dir, "throughput-kvm_exits-ratio")
                        )
         )
 
         interrupt_ratio = DummySensor(
             RatioGraph(interrupt_sensor.graph, packet_sensor_tx_packets.graph,
-                       "msg size", "Interrupts per Packet",
+                       "message size", "interrupts per Packet",
                        path.join(self.dir, "throughput-interrupts-ratio")
                        )
         )
 
         kvm_halt_exits = KvmHaltExitsSensor(
-            Graph("msg size", "Halt exits count (per sec)",
+            Graph("message size", "halt exits count (per sec)",
                                   path.join(self.dir, "throughput-kvm_halt_exits"),
                                   normalize=self.netperf_runtime)
         )
 
         batch_size = QemuBatchSizeSensor(
-            Graph("msg size", "Average batch size (in packets)",
+            Graph("message size", "average batch size (in packets)",
                   path.join(self.dir, "throughput-batch_size"))
         )
 
         batch_descriptos_size = QemuBatchDescriptorsSizeSensor(
-            Graph("msg size", "Average batch size (in descriptors)",
+            Graph("message size", "average batch size (in descriptors)",
                   path.join(self.dir, "throughput-batch_descriptors_size"))
         )
 
         batch_count = QemuBatchCountSensor(
-            Graph("msg size", "Average batch Count (per Sec)",
+            Graph("message size", "average batch Count (per Sec)",
                   path.join(self.dir, "throughput-batch_count"),
                   normalize=self.netperf_runtime)
         )
 
         batch_halt_ratio = DummySensor(
             RatioGraph(batch_count.graph, kvm_halt_exits.graph,
-                       "msg size", "batch count / kvm halt",
+                       "message size", "batch count / kvm halt",
                        path.join(self.dir, "throughput-batchCount_kvmHalt"))
         )
         batch_halt_ratio.graph.log_scale_y = 2
@@ -155,34 +155,34 @@ class QemuThroughputTest(TestBaseNetperf):
         )
 
         interrupt_delay = QemuInterruptDelaySensor(
-            Graph("msg size", "Average interrupt delay",
+            Graph("message size", "average interrupt delay",
                   path.join(self.dir, "throughput-interrupt_delay"))
         )
 
         bytes_per_batch = DummySensor(
             FuncGraph(lambda x, y: x*y,
                       batch_size.graph, packet_sensor_avg_size.graph,
-                      "msg size", "Bytes per batch",
+                      "message size", "bytes per batch",
                       path.join(self.dir, "throughput-batch_bytes")
                       )
         )
 
         sched_switch = SchedSwitchSensor(
-            Graph("msg size", "Num of Scheduler switch (per sec)",
+            Graph("message size", "num of scheduler switch (per sec)",
                   path.join(self.dir, "throughput-context_switch"),
                   normalize=self.netperf_runtime
                   )
         )
         sched_switch_per_batch = DummySensor(
             RatioGraph(sched_switch.graph, batch_count.graph,
-                       "msg size", "Context switch per batch",
+                       "message size", "context switch per batch",
                        path.join(self.dir, "throughput-context_switch-ratio")
                        )
         )
 
         kvm_exits_batch_ratio = DummySensor(
             RatioGraph(kvm_exits.graph, batch_count.graph,
-                       "msg size", "Exits per batch",
+                       "message size", "exits per batch",
                        path.join(self.dir, "throughput-kvm_exits-batch_ratio")
                        )
         )
@@ -190,14 +190,14 @@ class QemuThroughputTest(TestBaseNetperf):
         batch_time = DummySensor(
             FuncGraph(lambda x: 1e6 / x,
                       batch_count.graph, EmptyGraph(),
-                      "msg size", "batch duration [usec]",
+                      "message size", "batch duration [usec]",
                       path.join(self.dir, "throughput-batch_time")
                       )
         )
 
         interrupt_ratio_batch = DummySensor(
             RatioGraph(interrupt_sensor.graph, batch_count.graph,
-                       "msg size", "Interrupts per batch",
+                       "message size", "interrupts per batch",
                        path.join(self.dir, "throughput-interrupts-batch")
                        )
         )
