@@ -3,7 +3,7 @@ from copy import deepcopy
 from sensors.cpu import get_all_cpu_sensors, get_all_proc_cpu_sensors
 from sensors.interrupts import InterruptSensor, QemuInterruptDelaySensor
 from sensors.kvm_exits import KvmExitsSensor, KvmHaltExitsSensor
-from sensors.packet_num import PacketNumberSensor
+from sensors.packet_num import PacketNumberSensor, NicTxStopSensor, TCPTotalMSgs, TCPFirstMSgs
 from sensors.packet_num2 import PacketTxBytesSensor, PacketTxPacketsSensor, PacketRxBytesSensor, PacketRxPacketsSensor
 from sensors.qemu_batch import QemuBatchSizeSensor, QemuBatchCountSensor, QemuBatchDescriptorsSizeSensor
 from sensors.sched import SchedSwitchSensor
@@ -202,6 +202,41 @@ class QemuThroughputTest(TestBaseNetperf):
                        )
         )
 
+        nic_tx_stop = NicTxStopSensor(
+            Graph("message size", "num of tx queue stops (per sec)",
+                  path.join(self.dir, "throughput-tx_queue_stop"),
+                  normalize=self.netperf_runtime
+                  )
+        )
+
+        nic_tx_stop_ratio_batch = DummySensor(
+            RatioGraph(nic_tx_stop.graph, batch_count.graph,
+                       "message size", "queue stops per batch",
+                       path.join(self.dir, "throughput-tx_queue_stop-batch")
+                       )
+        )
+
+        tcp_total_msgs = TCPTotalMSgs(
+            Graph("message size", "num of transmited msgs per second",
+                  path.join(self.dir, "throughput-tcp_msgs_total"),
+                  normalize=self.netperf_runtime
+                  )
+        )
+
+        tcp_first_msgs = TCPFirstMSgs(
+            Graph("message size", "num of transmited first msgs per second",
+                  path.join(self.dir, "throughput-tcp_msgs_first"),
+                  normalize=self.netperf_runtime
+                  )
+        )
+
+        tcp_msgs_ratio = DummySensor(
+            RatioGraph(tcp_first_msgs.graph, tcp_total_msgs.graph,
+                       "message size", "queue stops per batch",
+                       path.join(self.dir, "throughput-tcp_msgs-ratio")
+                       )
+        )
+
         return [
                    self.netperf,
                    netperf_graph_ratio,
@@ -232,7 +267,13 @@ class QemuThroughputTest(TestBaseNetperf):
                    sched_switch,
                    sched_switch_per_batch,
 
-                   kvm_exits_batch_ratio
+                   kvm_exits_batch_ratio,
+                   nic_tx_stop,
+                   nic_tx_stop_ratio_batch,
+
+                   tcp_total_msgs,
+                   tcp_first_msgs,
+                   tcp_msgs_ratio,
                ] + cpu_sensors + cpu_proc_sensors
 
     def get_vms(self):

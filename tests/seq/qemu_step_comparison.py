@@ -79,6 +79,7 @@ def create_vms():
     vm_list_e1000.append(deepcopy(vm_list_e1000[-1]))
     vm_list_e1000[-1].e1000_options["NG_tx_iothread"] = "on"
     vm_list_e1000[-1].name = "e1000-IOThread"
+    e1000_before_interrupt_step = vm_list_e1000[-1]
 
     # Interrupts
     vm_list_e1000.append(deepcopy(vm_list_e1000[-1]))
@@ -89,6 +90,7 @@ def create_vms():
     vm_list_e1000[-1].e1000_options["NG_interrupt_mul"] = 0
     vm_list_e1000[-1].e1000_options["mitigation"] = "off"
     vm_list_e1000[-1].name = "e1000-send_on_halt"
+    e1000_send_on_halt = vm_list_e1000[-1]
 
     # Disable always flush TX queue RDT write
     vm_list_e1000.append(deepcopy(vm_list_e1000[-1]))
@@ -132,6 +134,13 @@ def create_vms():
     e1000_adaptive.e1000_options["NG_interrupt_mode"] = 3
     e1000_adaptive.name = "e1000-adaptive-after"
 
+    e1000_adaptive_partial = deepcopy(e1000_send_on_halt)
+    e1000_adaptive_partial.e1000_options["NG_parahalt"] = "off"
+    e1000_adaptive_partial.e1000_options["mitigation"] = "on"
+    e1000_adaptive_partial.e1000_options["NG_interrupt_mul"] = 1
+    e1000_adaptive_partial.e1000_options["NG_interrupt_mode"] = 3
+    e1000_adaptive_partial.name = "e1000-adaptive"
+
     # Adaptive1
     e1000_adaptive1 = deepcopy(vm_list_e1000[-1])
     e1000_adaptive1.e1000_options["NG_parahalt"] = "off"
@@ -172,8 +181,19 @@ def create_vms():
     pairs.append((vm_list_e1000[-1], e1000_int_halt))
 
     pairs.append((e1000_int_halt, e1000_adaptive))
+    pairs.append((e1000_send_on_halt, e1000_adaptive_partial))
+    pairs.append((e1000_adaptive_partial, e1000_before_interrupt_step))
 
-    return vm_list_virtio + vm_list_e1000 + [e1000_int_halt, e1000_adaptive], pairs
+    pairs.append((virtio, vm_list_e1000[-1]))
+
+    # return vm_list_virtio + vm_list_e1000 + [e1000_int_halt, e1000_adaptive], pairs
+    # vms = vm_list_virtio + vm_list_e1000 + [e1000_int_halt, e1000_adaptive, e1000_adaptive_partial]
+    vms = vm_list_virtio + vm_list_e1000 + [e1000_adaptive, e1000_adaptive_partial]
+    for vm in vms:
+        vm.enabled = False
+    # e1000_adaptive_partial.enabled = True
+
+    return vms, pairs
 
     # return (vm_list_e1000[-1], e1000_adaptive, e1000_adaptive1), \
     #        ((vm_list_e1000[-1], e1000_adaptive),

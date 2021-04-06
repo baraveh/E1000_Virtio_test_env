@@ -1,8 +1,8 @@
 from time import sleep
 
 from utils.graphs import Graph
-from utils.sensors import Sensor
-from utils.vms import Qemu
+from utils.sensors import Sensor, SensorBeforeAfter
+from utils.vms import Qemu, VM
 
 
 class PacketNumberSensor(Sensor):
@@ -34,3 +34,27 @@ class PacketNumberSensor(Sensor):
 
         self.packet_count_graph.add_data(title, x, packet_count)
         self.packet_size_graph.add_data(title, x, float(total_size)/(float(packet_count)+0.01))
+
+
+class NicTxStopSensor(SensorBeforeAfter):
+    def _get_value(self, vm: VM):
+        return int(vm.remote_command("cat /proc/sys/net/ipv4/queue_stopped").strip())
+
+    def _delta(self, value1, value2):
+        return value2 - value1
+
+
+class TCPTotalMSgs(SensorBeforeAfter):
+    def _get_value(self, vm: VM):
+        return int(vm.remote_command("cat /proc/sys/net/ipv4/total_msgs").strip())
+
+    def _delta(self, value1, value2):
+        return value2 - value1
+
+
+class TCPFirstMSgs(SensorBeforeAfter):
+    def _get_value(self, vm: VM):
+        return int(vm.remote_command("cat /proc/sys/net/ipv4/first_msgs").strip())
+
+    def _delta(self, value1, value2):
+        return value2 - value1

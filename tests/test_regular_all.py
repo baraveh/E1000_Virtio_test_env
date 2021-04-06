@@ -227,7 +227,7 @@ def create_vms():
         # virtio_batch,
         # virtio_drop,
         # virtio_vhost,
-        virtio_batch_nopoll,
+        # virtio_batch_nopoll,
 
         # e1000_best_3_13,
         # e1000_best_interrupt_3_13,
@@ -244,14 +244,14 @@ def create_vms():
         # e1000_timer_itr_reg_lq,
         # e1000_timer_itr_reg_nolock,
 
-        # e1000_halt,
+        e1000_halt,
         # e1000_halt_lq,
         # e1000_halt_no_rdt_jump,
         # e1000_halt_no_rdt_jump_lq,
         # e1000_halt_unlock
 
-        e1000_halt_no_rdt_jump_no_itr,
-        e1000_halt_no_rdt_jump_no_itr2,
+        # e1000_halt_no_rdt_jump_no_itr,
+        # e1000_halt_no_rdt_jump_no_itr2,
         # e1000_halt_no_rdt_jump_no_itr2_rx_scum_offloading,
         # e1000_halt_no_rdt_jump_no_itr2_queue512,
         # e1000_halt_no_rdt_jump_no_itr2_queue1024,
