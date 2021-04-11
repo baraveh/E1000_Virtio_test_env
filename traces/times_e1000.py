@@ -27,7 +27,7 @@ class QemuTest(TestBase):
 
     def __init__(self, netperf_runtime, *args, dir_name=None, **kargs):
         if not dir_name:
-            self.DIR = r"/home/bdaviv/tmp/results"
+            self.DIR = r"../tmp/results"
         else:
             self.Dir = dir_name
         self.netperf_runtime = netperf_runtime

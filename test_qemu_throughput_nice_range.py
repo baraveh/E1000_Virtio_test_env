@@ -28,7 +28,7 @@ class QemuLargeRing(QemuE1000Max):
 
 
 class QemuRegularTest(TestBaseNetperf):
-    DIR = r"/home/bdaviv/tmp/results"
+    DIR = r"../tmp/results"
 
     def __init__(self, netperf_runtime, *args, **kargs):
         self.netperf_runtime = netperf_runtime
@@ -57,8 +57,8 @@ class QemuRegularTest(TestBaseNetperf):
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
-        #     Graph("msg size", "packet number", r"/home/bdaviv/tmp/packet_num.pdf", r"/home/bdaviv/tmp/packet_num.txt"),
-        #     Graph("msg size", "average packet size", r"/home/bdaviv/tmp/packet_size.pdf", r"/home/bdaviv/tmp/packet_size.txt")
+        #     Graph("msg size", "packet number", r"../tmp/packet_num.pdf", r"../tmp/packet_num.txt"),
+        #     Graph("msg size", "average packet size", r"../tmp/packet_size.pdf", r"../tmp/packet_size.txt")
         # )
 
         packet_sensor_tx_bytes = PacketRxBytesSensor(

@@ -28,7 +28,7 @@ class QemuLargeRing(QemuE1000Max):
 
 
 class QemuNiceTest(QemuThroughputTest):
-    DIR = r"/home/bdaviv/tmp/results"
+    DIR = r"../tmp/results"
 
     def __init__(self, netperf_runtime, *args, **kargs):
         super(QemuNiceTest, self).__init__(netperf_runtime, *args, **kargs)

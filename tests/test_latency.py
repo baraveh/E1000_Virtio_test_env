@@ -8,7 +8,7 @@ from test_qemu_latency import TestCmpLatency
 # RUNTIME = 8
 RUNTIME = 30
 RETRIES = 3
-BASE_DIR = r"/home/bdaviv/tmp/results/{hostname}/test-results-latency".format(
+BASE_DIR = r"../tmp/results/{hostname}/test-results-latency".format(
     hostname=socket.gethostname()
 )
 

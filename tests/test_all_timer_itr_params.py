@@ -9,7 +9,7 @@ from test_qemu_throughput import TestCmpThroughputTSO, TestCmpThroughput
 # RUNTIME = 8
 RUNTIME = 8
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-timer_itr_params/{hostname}".format(
+BASE_DIR = r"../tmp/results/test-timer_itr_params/{hostname}".format(
     hostname=socket.gethostname()
 )
 

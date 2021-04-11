@@ -14,7 +14,7 @@ from test_qemu_throughput import TestCmpThroughput
 # RUNTIME = 8
 RUNTIME = 15
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-results"
+BASE_DIR = r"../tmp/results/test-results"
 
 def create_vms():
     base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",

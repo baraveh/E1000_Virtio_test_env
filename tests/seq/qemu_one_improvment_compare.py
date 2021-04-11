@@ -16,7 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 RUNTIME = 10
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/one_feature/{hostname}".format(
+BASE_DIR = r"../tmp/results/one_feature/{hostname}".format(
     hostname=gethostname()
 )
 

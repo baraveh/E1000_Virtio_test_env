@@ -41,16 +41,16 @@ class MainTest(TestBase):
                 ]
 
     def get_sensors(self):
-        netperf_graph = Graph("msg size", "throughput", r"/home/bdaviv/tmp/throughput.pdf", r"/home/bdaviv/tmp/throughput.txt")
+        netperf_graph = Graph("msg size", "throughput", r"../tmp/throughput.pdf", r"../tmp/throughput.txt")
         self.netperf = NetPerfTCP(netperf_graph, runtime=self.netperf_runtime)
 
         packet_sensor = PacketNumberSensor(
-            Graph("msg size", "packet number", r"/home/bdaviv/tmp/packet_num.pdf", r"/home/bdaviv/tmp/packet_num.txt"),
-            Graph("msg size", "average packet size", r"/home/bdaviv/tmp/packet_size.pdf", r"/home/bdaviv/tmp/packet_size.txt")
+            Graph("msg size", "packet number", r"../tmp/packet_num.pdf", r"../tmp/packet_num.txt"),
+            Graph("msg size", "average packet size", r"../tmp/packet_size.pdf", r"../tmp/packet_size.txt")
         )
 
         interrupt_sensor = InterruptSensor(
-            Graph("msg size", "interrupt count", r"/home/bdaviv/tmp/interrupts.pdf", r"/home/bdaviv/tmp/interrupts.txt")
+            Graph("msg size", "interrupt count", r"../tmp/interrupts.pdf", r"../tmp/interrupts.txt")
         )
         return [
                 self.netperf,

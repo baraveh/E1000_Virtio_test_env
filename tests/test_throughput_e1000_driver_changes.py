@@ -14,7 +14,7 @@ from test_qemu_throughput import TestCmpThroughput
 # RUNTIME = 8
 RUNTIME = 15
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-results"
+BASE_DIR = r"../tmp/results/test-results"
 
 OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
 OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"

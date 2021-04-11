@@ -11,7 +11,7 @@ from test_qemu_throughput import TestCmpThroughput
 
 RUNTIME = 15
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/one_feature+iothread-graph"
+BASE_DIR = r"../tmp/results/one_feature+iothread-graph"
 
 
 def create_vms():

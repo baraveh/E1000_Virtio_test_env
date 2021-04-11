@@ -12,7 +12,7 @@ from test_qemu_throughput import TestCmpThroughput, TestCmpThroughputTSO
 RUNTIME = 8
 # RUNTIME = 30
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/test-busy-loop/{hostname}".format(
+BASE_DIR = r"../tmp/results/test-busy-loop/{hostname}".format(
     hostname=socket.gethostname()
 )
 

@@ -11,7 +11,7 @@ from test_qemu_throughput import TestCmpThroughput
 
 RUNTIME = 15
 RETRIES = 1
-BASE_DIR = r"/home/bdaviv/tmp/results/virtio_baseline"
+BASE_DIR = r"../tmp/results/virtio_baseline"
 
 
 def create_vms():

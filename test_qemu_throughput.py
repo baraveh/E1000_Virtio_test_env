@@ -25,7 +25,7 @@ Qemu.QEMU_EXE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-s
 
 
 class QemuThroughputTest(TestBaseNetperf):
-    DIR = r"/home/bdaviv/tmp/results"
+    DIR = r"../tmp/results"
     NETPERF_CLS = NetPerfTCP
 
     def __init__(self, netperf_runtime, *args, **kargs):
@@ -57,8 +57,8 @@ class QemuThroughputTest(TestBaseNetperf):
         self.netperf = self.NETPERF_CLS(netperf_graph, runtime=self.netperf_runtime)
 
         # packet_sensor = PacketNumberSensor(
-        #     Graph("message size", "packet number", r"/home/bdaviv/tmp/packet_num.pdf", r"/home/bdaviv/tmp/packet_num.txt"),
-        #     Graph("message size", "average packet size", r"/home/bdaviv/tmp/packet_size.pdf", r"/home/bdaviv/tmp/packet_size.txt")
+        #     Graph("message size", "packet number", r"../tmp/packet_num.pdf", r"../tmp/packet_num.txt"),
+        #     Graph("message size", "average packet size", r"../tmp/packet_size.pdf", r"../tmp/packet_size.txt")
         # )
         netperf_graph_ratio = DummySensor(
             GraphRatioGnuplot(
