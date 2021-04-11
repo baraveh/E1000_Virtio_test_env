@@ -1,9 +1,9 @@
 from test_qemu_latency import LatencyTest
-from test_qemu_throughput import QemuRegularTest
+from test_qemu_throughput import QemuThroughputTest
 
 
 def main(runtime=3, retries=1):
-    for cls in (QemuRegularTest, LatencyTest):
+    for cls in (QemuThroughputTest, LatencyTest):
         test = cls(runtime, retries=retries)
         test.pre_run()
         test.run()

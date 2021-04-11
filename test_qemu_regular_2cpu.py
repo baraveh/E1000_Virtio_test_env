@@ -1,5 +1,5 @@
 from sensors.packet_num import PacketNumberSensor
-from utils.test_base import TestBase
+from utils.test_base import TestBase, TestBaseNetperf
 from utils.vms import Qemu, VM, QemuE1000Max
 from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
@@ -8,12 +8,12 @@ from utils.shell_utils import run_command
 Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64" 
 
 
-class MainTest(TestBase):
+class MainTest(TestBaseNetperf):
     def __init__(self, netperf_runtime, *args, **kargs):
         self.netperf_runtime = netperf_runtime
         super(MainTest, self).__init__(*args, **kargs)
 
-    def get_msg_sizes(self):
+    def get_x_categories(self):
         return [
                 # (65160, "65K"),
                 (64*2**10, "64K"),
@@ -77,8 +77,8 @@ class MainTest(TestBase):
                 # (self.qemu_e1000_1g, "qemu_e1000_1G"),
                 ]
 
-    def test_func(self, vm: VM, vm_name: str, msg_size: int):
-        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size=msg_size)
+    def test_func(self, vm: VM, vm_name: str, x_value: int):
+        self.netperf.run_netperf(vm, vm_name, x_value, msg_size=x_value)
 
 if __name__ == "__main__":
     test = MainTest(15, retries=3)

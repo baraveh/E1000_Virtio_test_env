@@ -13,7 +13,7 @@ class MainTest(TestBase):
         self.netperf_runtime = netperf_runtime
         super(MainTest, self).__init__(*args, **kargs)
 
-    def get_msg_sizes(self):
+    def get_x_categories(self):
         return [
                 (65160, "65K"),
                 (64*2**10, "64K"),
@@ -73,8 +73,8 @@ class MainTest(TestBase):
             (qemu_e1000_best, "qemu_e1000_best"),
         ]
 
-    def test_func(self, vm: VM, vm_name: str, msg_size: int):
-        self.netperf.run_netperf(vm, vm_name, msg_size, msg_size=msg_size)
+    def test_func(self, vm: VM, vm_name: str, x_value: int):
+        self.netperf.run_netperf(vm, vm_name, x_value, msg_size=x_value)
 
 if __name__ == "__main__":
     test = MainTest(netperf_runtime=15, retries=3)

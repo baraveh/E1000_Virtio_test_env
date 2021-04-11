@@ -23,7 +23,7 @@ def main(directory=None):
               guest_ip="10.10.0.43",
               host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO
-    vm.qemu_config["latency_itr"] = 2
+    # vm.qemu_config["latency_itr"] = 2
 
     local_trace = Trace(localRoot, "/tmp/trace_host")
     local_trace.setup()

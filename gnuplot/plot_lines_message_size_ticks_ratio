@@ -1,0 +1,52 @@
+set style data linesp
+w=4
+p=0.9
+set style line 1 lt 1 lw w pt 1 ps p
+set style line 2 lt 2 lw w pt 1 ps p
+set style line 3 lt 3 lw w pt 1 ps p
+set style line 4 lt 4 lw w pt 1 ps p
+set style line 5 lt 5 lw w pt 1 ps p
+set style line 6 lt 7 lw w pt 1 ps p
+set style line 7 lt 8 lw w pt 1 ps p
+set style line 8 lt 9 lw w pt 1 ps p
+set style line 9 lt 10 lw w pt 1 ps p
+set style line 10 lt 11 lw w pt 1 ps p
+
+set terminal pdf
+set output output_filename
+
+set title graph_title
+set ylabel y_label
+set xlabel x_label
+#set xtics auto
+set macros
+#x_tics_string="(\"A\" 1, \"B\" 2, \"C\" 3)"
+set xtics @x_tics
+#set xtics rotate by 45 right
+
+#legend
+#set key inside center top
+set key inside left top
+
+set grid ytics lc rgb "#bbbbbb" lw 1 lt 0
+set grid xtics lc rgb "#bbbbbb" lw 1 lt 0
+
+if (exists("log_scale_x")){
+	set logscale x log_scale_x
+}
+
+if (exists("log_scale_y")){
+	set logscale y log_scale_y
+} else {
+    #set yrange [0:]
+}
+
+#set yrange [0:4096]
+set xzeroaxis lt -1
+
+columns_num = system("awk 'NR==1{print NF}' " . data_filename) #find the number of columns in the data file
+
+plot for [i=3:columns_num] data_filename using 1:(((column(i))/$2)) with linespoints title col ls (i-1)
+
+
+#plot x

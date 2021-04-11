@@ -25,7 +25,7 @@ class MainTest(TestBase2VM):
         self.netperf_runtime = netperf_runtime
         super(MainTest, self).__init__(*args, **kargs)
 
-    def get_msg_sizes(self):
+    def get_x_categories(self):
         return [
             # (65160, "65K"),
             (64 * 2 ** 10, "64K"),
@@ -52,8 +52,8 @@ class MainTest(TestBase2VM):
         )
         return [self.netperf, packet_sensor]
 
-    def test_func(self, vm: VM, vm_name: str, msg_size: int, remote_ip=None):
-        self.netperf.run_netperf(vm, vm_name, msg_size, remote_ip=remote_ip, msg_size=msg_size)
+    def test_func(self, vm: VM, vm_name: str, x_value: int, remote_ip=None):
+        self.netperf.run_netperf(vm, vm_name, x_value, remote_ip=remote_ip, msg_size=x_value)
 
     def get_vms(self):
         qemu_virtio1 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",

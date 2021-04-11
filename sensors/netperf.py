@@ -1,31 +1,42 @@
 import logging
 
 from utils.sensors import Sensor
+from utils.shell_utils import run_command_check, run_command
 from utils.vms import VM
 from utils.graphs import Graph
 
 logger = logging.getLogger(__name__)
 
+NETPERF_CORE = 3
+
+
+def netserver_start(core=NETPERF_CORE, nice=0):
+    run_command("sudo taskset -c {} nice -n {} netserver".format(core, nice))
+
+
+def netserver_stop():
+    run_command("sudo killall netserver")
+
 
 class NetPerf(Sensor):
-    def __init__(self, graph: Graph, runtime=10):
+    def __init__(self, graph: Graph = None, runtime=10):
         super(NetPerf, self).__init__(graph)
         self.runtime = runtime
         self.test = ""
 
-    def test_params(self, *args, **kargs):
+    def test_params(self, *args, vm_params="", **kargs):
         return ""
 
     def run_netperf(self, vm: VM, title="", x="", remote_ip=None, *args, **kargs):
         if not remote_ip:
             remote_ip = vm.ip_host
 
-        logger.info("Netperf run: %d seconds, %s, params=%s", self.runtime, self.test, self.test_params(*args, **kargs))
+        logger.info("Netperf run: %d seconds, %s, params=%s", self.runtime, self.test, self.test_params(*args, vm_param=vm.netperf_test_params, **kargs))
         netperf_command = "netperf -H {ip} -l {runtime} -t {test_type} -v 0 {test_params}".format(
             ip=remote_ip,
             runtime=self.runtime,
             test_type=self.test,
-            test_params=self.test_params(*args, **kargs)
+            test_params=self.test_params(*args, vm_param=vm.netperf_test_params, **kargs)
         )
         output = vm.remote_command(netperf_command)
         # sample output:
@@ -48,13 +59,23 @@ class NetPerfTCP(NetPerf):
     def __init__(self, *args, **kargs):
         super(NetPerfTCP, self).__init__(*args, **kargs)
         self.test = "TCP_STREAM"
+        self._static_test_params = ""
 
-    def test_params(self, msg_size):
+    def test_params(self, msg_size, vm_param=""):
+        return " -- -m {} {} {}".format(msg_size, vm_param, self._static_test_params)
+
+
+class NetPerfUDP(NetPerf):
+    def __init__(self, *args, **kargs):
+        super(NetPerfUDP, self).__init__(*args, **kargs)
+        self.test = "UDP_STREAM"
+
+    def test_params(self, msg_size, vm_param=""):
         return " -- -m {}".format(msg_size)
 
 
 class NetPerfTCPNoDelay(NetPerfTCP):
-    def test_params(self, msg_size):
+    def test_params(self, msg_size, vm_param=""):
         return " -- -m {} -D L,R".format(msg_size)
 
 
@@ -63,5 +84,28 @@ class NetPerfLatency(NetPerf):
         super(NetPerfLatency, self).__init__(*args, **kargs)
         self.test = "TCP_RR"
 
-    def test_params(self, msg_size):
+    def test_params(self, msg_size, vm_param=""):
         return " -- -r {},64".format(msg_size)
+
+
+class NetPerfTcpTSO(NetPerfTCP):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self._static_test_params = "-C"
+        self.batch_size = None
+
+    def run_netperf(self, vm: VM, title="", x="", remote_ip=None, *args, **kargs):
+        try:
+            vm.remote_command(
+                "echo {} > /proc/sys/net/ipv4/tcp_tso_size".format(kargs["msg_size"])
+            )
+        except:
+            pass
+        if self.batch_size:
+            try:
+                vm.remote_command(
+                    "echo {} > /proc/sys/net/ipv4/tcp_batch_size".format(self.batch_size)
+                )
+            except:
+                pass
+        return super().run_netperf(vm, *args, title=title, x=x, remote_ip=remote_ip, **kargs)
