@@ -18,7 +18,7 @@ BASE_DIR = r"../tmp/results/test-finals/{hostname}".format(
 
 
 def create_vms():
-    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base = QemuNG(disk_path=r"../../vms/ubuntu.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
 
@@ -38,18 +38,18 @@ def create_vms():
     virtio_batch.name = "virtio_batch"
     virtio_batch.e1000_options["NG_notify_batch"] = "on"
 
-    e1000_para_halt = QemuE1000NGBest(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_para_halt = QemuE1000NGBest(disk_path=r"../../vms/ubuntu.img",
                                       guest_ip="10.10.0.43",
                                       host_ip="10.10.0.44")
     e1000_para_halt.name = "e1000-parahalt"
 
     regular_vms = [
-        # e1000_baseline,
+        e1000_baseline,
 
-        # virtio,
-        virtio_batch,
+        virtio,
+        #virtio_batch,
 
-        e1000_para_halt,
+        #e1000_para_halt,
     ]
 
     return tuple(regular_vms)

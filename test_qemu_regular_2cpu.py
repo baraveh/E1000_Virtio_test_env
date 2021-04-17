@@ -40,30 +40,30 @@ class MainTest(TestBaseNetperf):
         return [self.netperf, packet_sensor]
 
     def get_vms(self):
-        qemu_virtio = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio = Qemu(disk_path=r"../../vms/ubuntu.img",
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio.io_thread_cpu = "1"
 
-        qemu_e1000 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000 = Qemu(disk_path=r"../../vms/ubuntu.img",
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
         qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
         qemu_e1000.io_thread_cpu = "1"
 
-        qemu_e1000_best = QemuE1000Max(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_best = QemuE1000Max(disk_path=r"../../vms/ubuntu.img",
                                guest_ip="10.10.0.43",
                                host_ip="10.10.0.44")
         qemu_e1000_best.io_thread_cpu = "1"
 
-        # self.qemu_virtio_1g = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        # self.qemu_virtio_1g = Qemu(disk_path=r"../../vms/ubuntu.img",
         #                            guest_ip="10.10.0.43",
         #                            host_ip="10.10.0.44")
         # self.qemu_virtio_1g.ethernet_dev = Qemu.QEMU_VIRTIO
         # self.qemu_virtio_1g.mem=1024
         #
-        # self.qemu_e1000_1g = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        # self.qemu_e1000_1g = Qemu(disk_path=r"../../vms/ubuntu.img",
         #                           guest_ip="10.10.0.43",
         #                           host_ip="10.10.0.44")
         # self.qemu_e1000_1g.ethernet_dev = Qemu.QEMU_E1000

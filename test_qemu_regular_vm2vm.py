@@ -56,7 +56,7 @@ class MainTest(TestBase2VM):
         self.netperf.run_netperf(vm, vm_name, x_value, remote_ip=remote_ip, msg_size=x_value)
 
     def get_vms(self):
-        qemu_virtio1 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio1 = Qemu(disk_path=r"../../vms/ubuntu.img",
                             guest_ip="10.10.0.43",
                             host_ip="10.10.0.44")
         qemu_virtio1.ethernet_dev = Qemu.QEMU_VIRTIO
@@ -68,7 +68,7 @@ class MainTest(TestBase2VM):
         qemu_virtio2.mac_address = "52:54:00:a0:e5:1d"
         qemu_virtio2.cpu_to_pin = 3
 
-        qemu_e1000_1 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_1 = Qemu(disk_path=r"../../vms/ubuntu.img",
                             guest_ip="10.10.0.43",
                             host_ip="10.10.0.44")
         qemu_e1000_1.ethernet_dev = Qemu.QEMU_E1000

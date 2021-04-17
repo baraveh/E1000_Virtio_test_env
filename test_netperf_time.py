@@ -50,7 +50,7 @@ class MainTest(TestBase):
         return [self.netperf] # , packet_sensor]
 
     def get_vms(self):
-        qemu_virtio = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio = Qemu(disk_path=r"../../vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
