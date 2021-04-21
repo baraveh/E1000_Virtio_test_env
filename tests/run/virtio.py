@@ -11,7 +11,7 @@ from test_qemu_throughput import TestCmpThroughput
 
 from utils.vms import Qemu, QemuE1000Max, QemuE1000NG, QemuLargeRingNG, QemuNG
 
-# ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+# ORIG_QEMU = r"/usr/lib/qemu"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 ORIG_QEMU = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
 ORIG_QEMU_TRACE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build-trace/x86_64-softmmu/qemu-system-x86_64"
@@ -23,7 +23,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def main(trace=False):
-    vm = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    vm = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                 guest_ip="10.10.0.43",
                 host_ip="10.10.0.44")
     vm.ethernet_dev = vm.QEMU_VIRTIO

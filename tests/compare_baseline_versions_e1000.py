@@ -15,7 +15,7 @@ BASE_DIR = r"/home/bdaviv/tmp/results/e1000_baseline"
 
 
 def create_vms():
-    OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+    OLD_QEMU = r"/usr/lib/qemu"
     OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
     OLD_INITRD = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
 

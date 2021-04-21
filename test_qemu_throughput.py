@@ -17,7 +17,7 @@ from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph, GraphRatioGnu
 from os import path
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-#Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+#Qemu.QEMU_EXE = r"/usr/lib/qemu"
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
@@ -277,65 +277,65 @@ class QemuThroughputTest(TestBaseNetperf):
                ] + cpu_sensors + cpu_proc_sensors
 
     def get_vms(self):
-        qemu_e1000e = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000e = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_e1000e.ethernet_dev = "e1000e"
 
-        qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
 
-        qemu_virtio_drop_packets = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio_drop_packets = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio_drop_packets.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio_drop_packets.e1000_options["NG_drop_packet"] = "on"
 
-        qemu_virtio_latency = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio_latency = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                    guest_ip="10.10.0.43",
                                    host_ip="10.10.0.44")
         qemu_virtio_latency.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio_latency.qemu_config["latency_itr"] = 2
 
-        qemu_e1000_baseline = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_baseline = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                    guest_ip="10.10.0.43",
                                    host_ip="10.10.0.44")
         qemu_e1000_baseline.ethernet_dev = Qemu.QEMU_E1000
 
-        qemu_e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur.qemu_config["latency_itr"] = 0
-        qemu_e1000_arthur_nice = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_arthur_nice = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur_nice.qemu_config["latency_itr"] = 0
         qemu_e1000_arthur_nice.is_io_thread_nice = True
 
-        qemu_smart_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_smart_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                       guest_ip="10.10.0.43",
                                       host_ip="10.10.0.44")
         qemu_smart_itr.qemu_config["latency_itr"] = 1
         qemu_smart_itr.qemu_config["tx_packets_per_batch"] = 0
         qemu_smart_itr.qemu_config["dynamic_latency_mode"] = 0
 
-        qemu_smart_itr2 = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_smart_itr2 = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                        guest_ip="10.10.0.43",
                                        host_ip="10.10.0.44")
         qemu_smart_itr2.qemu_config["latency_itr"] = 1
         qemu_smart_itr2.ethernet_dev = 'e1000-82545em'
         qemu_smart_itr2.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
 
-        qemu_smart_itr3 = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_smart_itr3 = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                        guest_ip="10.10.0.43",
                                        host_ip="10.10.0.44")
         qemu_smart_itr3.qemu_config["latency_itr"] = 2
         qemu_smart_itr3.ethernet_dev = 'e1000-82545em'
         qemu_smart_itr3.addiotional_guest_command = 'sudo ethtool -C eth0 rx-usecs 3000'
 
-        qemu_e1000_io_thread = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_io_thread = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                             guest_ip="10.10.0.43",
                                             host_ip="10.10.0.44")
         qemu_e1000_io_thread.nic_additionals = ",iothread=iothread0"
@@ -344,33 +344,33 @@ class QemuThroughputTest(TestBaseNetperf):
         # qemu_smart_itr3.qemu_config["drop_packet_every"] = 0
 
         #
-        # qemu_e1000_no_new_improv = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        # qemu_e1000_no_new_improv = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
         #                                      guest_ip="10.10.0.43",
         #                                      host_ip="10.10.0.44")
         # qemu_e1000_no_new_improv.qemu_config["smart_interrupt_mitigation"] = 0
         # qemu_e1000_no_new_improv.qemu_config["drop_packet_every"] = 0
         #
-        # qemu_virtio_drop = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        # qemu_virtio_drop = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
         #                                      guest_ip="10.10.0.43",
         #                                      host_ip="10.10.0.44")
         # qemu_virtio_drop.qemu_config["smart_interrupt_mitigation"] = 0
         # qemu_virtio_drop.qemu_config["drop_packet_every"] = 0
         # qemu_virtio_drop.ethernet_dev = Qemu.QEMU_VIRTIO
         #
-        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                guest_ip="10.10.0.43",
                                host_ip="10.10.0.44")
         qemu_large_queue.is_io_thread_nice = True
         qemu_large_queue.qemu_config["drop_packet_every"]=0
 
-        qemu_large_queue_itr6 = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_queue_itr6 = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_large_queue_itr6.is_io_thread_nice = True
         qemu_large_queue_itr6.qemu_config["interrupt_mitigation_multiplier"] = 6
         qemu_large_queue_itr6.qemu_config["drop_packet_every"] = 0
 
-        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                               guest_ip="10.10.0.43",
                                               host_ip="10.10.0.44")
         qemu_large_queue_batch_itr.is_io_thread_nice = True
@@ -379,24 +379,24 @@ class QemuThroughputTest(TestBaseNetperf):
         qemu_large_queue_batch_itr.qemu_config["drop_packet_every"] = 0
         qemu_large_queue_batch_itr.qemu_config["interrupt_mitigation_multiplier"] = 1000
 
-        # qemu_e1000_best_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        # qemu_e1000_best_itr = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
         #                                guest_ip="10.10.0.43",
         #                                host_ip="10.10.0.44")
         # qemu_e1000_best_itr.exe = r"/homes/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
 
-        # self.qemu_virtio_1g = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        # self.qemu_virtio_1g = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
         #                            guest_ip="10.10.0.43",
         #                            host_ip="10.10.0.44")
         # self.qemu_virtio_1g.ethernet_dev = Qemu.QEMU_VIRTIO
         # self.qemu_virtio_1g.mem=1024
         #
-        # self.qemu_e1000_1g = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        # self.qemu_e1000_1g = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
         #                           guest_ip="10.10.0.43",
         #                           host_ip="10.10.0.44")
         # self.qemu_e1000_1g.ethernet_dev = Qemu.QEMU_E1000
         # self.qemu_e1000_1g.mem=
 
-        qemu_arthur_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_arthur_arthur = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
                                           guest_ip="10.10.0.43",
                                           host_ip="10.10.0.44")
         qemu_arthur_arthur.ethernet_dev = qemu_arthur_arthur.QEMU_E1000
@@ -413,31 +413,31 @@ class QemuThroughputTest(TestBaseNetperf):
             "zero_copy_on": 1,
         }
 
-        qemu_ng_max = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_ng_max = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                   guest_ip="10.10.0.43",
                                   host_ip="10.10.0.44")
 
-        qemu_large_ring_ng = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_ring_ng = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                              guest_ip="10.10.0.43",
                                              host_ip="10.10.0.44")
 
-        qemu_ng_max_nocsum = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_ng_max_nocsum = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_ng_max_nocsum.e1000_options["NG_no_checksum"] = "off"
 
-        qemu_large_ring_ng_nocsum = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_ring_ng_nocsum = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                                     guest_ip="10.10.0.43",
                                                     host_ip="10.10.0.44")
         qemu_large_ring_ng_nocsum.e1000_options["NG_no_checksum"] = "off"
-        qemu_virtio_nice = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio_nice = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio_nice.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio_nice.is_io_thread_nice = True
         qemu_virtio_nice.io_nice = 5
 
-        qemu_large_ring_ng_tso_offload = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_ring_ng_tso_offload = QemuLargeRingNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                              guest_ip="10.10.0.43",
                                              host_ip="10.10.0.44")
         qemu_large_ring_ng_tso_offload.e1000_options["NG_tso_offloading"] = "on"

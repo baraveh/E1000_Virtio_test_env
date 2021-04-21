@@ -19,7 +19,7 @@ def create_vms():
     OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
     OLD_INITRD = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
 
-    base = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                 guest_ip="10.10.0.43",
                 host_ip="10.10.0.44")
     base.kernel = OLD_KERNEL
@@ -40,7 +40,7 @@ def create_vms():
     virtio_drop.qemu_config["drop_packet_every_avg_packet_size_min"] = 9000
     virtio_drop.qemu_config["drop_packet_every_avg_packet_size_max"] = 62000
 
-    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
     e1000_arthur.kernel = OLD_KERNEL

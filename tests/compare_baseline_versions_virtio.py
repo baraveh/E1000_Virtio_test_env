@@ -15,10 +15,10 @@ BASE_DIR = r"../tmp/results/virtio_baseline"
 
 
 def create_vms():
-    OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+    OLD_QEMU = r"/usr/lib/qemu"
     OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
     OLD_INITRD = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
-    base_machine = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base_machine = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
     base_machine.ethernet_dev = base_machine.QEMU_VIRTIO

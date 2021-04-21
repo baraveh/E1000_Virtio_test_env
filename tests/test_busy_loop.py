@@ -22,7 +22,7 @@ OLD_INITRD = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
 
 
 def create_vms():
-    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
 
@@ -38,12 +38,12 @@ def create_vms():
     virtio_batch.name = "virtio_batch"
     virtio_batch.e1000_options["NG_notify_batch"] = "on"
 
-    e1000_para_halt = QemuE1000NGBest(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_para_halt = QemuE1000NGBest(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                       guest_ip="10.10.0.43",
                                       host_ip="10.10.0.44")
     e1000_para_halt.name = "e1000-parahalt"
 
-    e1000_adaptive = QemuE1000NGAdaptive(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_adaptive = QemuE1000NGAdaptive(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
     e1000_adaptive.name = "e1000-adaptive"

@@ -12,7 +12,7 @@ from utils.machine import localRoot
 from utils.shell_utils import run_command_async
 from utils.vms import Qemu, QemuE1000Max, QemuNG
 
-# ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+# ORIG_QEMU = r"/usr/lib/qemu"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 ORIG_QEMU = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
 # TMP_QEMU = r"/tmp/qemu-system-x86_64"
@@ -47,7 +47,7 @@ def main(directory=None, netperf_msg_size=None):
     netserver_start()
     logger.info("msg size = %s", netperf_msg_size)
 
-    vm = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    vm = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                 guest_ip="10.10.0.43",
                 host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO

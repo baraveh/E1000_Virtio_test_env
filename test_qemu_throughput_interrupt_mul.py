@@ -13,7 +13,7 @@ from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
 from os import path
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+Qemu.QEMU_EXE = r"/usr/lib/qemu"
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
@@ -157,35 +157,35 @@ class QemuRegularTest(TestBaseNetperf):
                ] + cpu_sensors
 
     def get_vms(self):
-        qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
 
-        qemu_virtio_latency = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio_latency = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                    guest_ip="10.10.0.43",
                                    host_ip="10.10.0.44")
         qemu_virtio_latency.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio_latency.qemu_config["latency_itr"] = 2
 
-        qemu_e1000_baseline = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_baseline = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                    guest_ip="10.10.0.43",
                                    host_ip="10.10.0.44")
         qemu_e1000_baseline.ethernet_dev = Qemu.QEMU_E1000
 
-        qemu_e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur.qemu_config["latency_itr"] = 0
         qemu_e1000_arthur.is_io_thread_nice = False
 
-        qemu_e1000_arthur_nice = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_arthur_nice = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur_nice.qemu_config["latency_itr"] = 0
 
 
-        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                guest_ip="10.10.0.43",
                                host_ip="10.10.0.44")
         qemu_large_queue.is_io_thread_nice = True
@@ -193,7 +193,7 @@ class QemuRegularTest(TestBaseNetperf):
         qemu_large_queue_itr = list()
         for i in range(500, 1600, 100):
             for nice in (True, ):
-                v = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+                v = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                  guest_ip="10.10.0.43",
                                  host_ip="10.10.0.44")
                 v.is_io_thread_nice = nice

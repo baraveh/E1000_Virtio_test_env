@@ -14,7 +14,7 @@ from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
 from os import path
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+Qemu.QEMU_EXE = r"/usr/lib/qemu"
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
@@ -46,18 +46,18 @@ class QemuNiceTest(QemuThroughputTest):
         self.netperf.run_netperf(vm, vm_name, x_value, msg_size=self.msg_size)
 
     def get_vms(self):
-        qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_virtio = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
 
-        qemu_e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
-        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_queue = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
-        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                                    guest_ip="10.10.0.43",
                                                    host_ip="10.10.0.44")
         qemu_large_queue_batch_itr.is_io_thread_nice = True

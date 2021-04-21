@@ -85,7 +85,7 @@ def create_vms():
     e1000_timer_itr.name = "E1000-timer_itr"
     # e1000_timer_itr.e1000_options["NG_parabatch"] = "on"
 
-    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
     e1000_arthur.kernel = OLD_KERNEL

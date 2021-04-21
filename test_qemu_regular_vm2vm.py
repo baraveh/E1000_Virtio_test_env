@@ -5,7 +5,7 @@ from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
 from utils.shell_utils import run_command, run_command_check
 
-Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64"
+Qemu.QEMU_EXE = r"/usr/lib/qemu"
 
 
 class QemuE1000GuestOnly(QemuE1000Max):
@@ -60,7 +60,7 @@ class MainTest(TestBase2VM):
                             guest_ip="10.10.0.43",
                             host_ip="10.10.0.44")
         qemu_virtio1.ethernet_dev = Qemu.QEMU_VIRTIO
-        qemu_virtio2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
+        qemu_virtio2 = Qemu(disk_path=r"../vms/vm-copy.img",
                             guest_ip="10.10.0.42",
                             host_ip="10.10.0.44")
         qemu_virtio2.vnc_number = 11
@@ -72,7 +72,7 @@ class MainTest(TestBase2VM):
                             guest_ip="10.10.0.43",
                             host_ip="10.10.0.44")
         qemu_e1000_1.ethernet_dev = Qemu.QEMU_E1000
-        qemu_e1000_2 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
+        qemu_e1000_2 = Qemu(disk_path=r"../vms/vm-copy.img",
                             guest_ip="10.10.0.42",
                             host_ip="10.10.0.44")
         qemu_e1000_2.ethernet_dev = Qemu.QEMU_E1000
@@ -80,10 +80,10 @@ class MainTest(TestBase2VM):
         qemu_e1000_2.mac_address = "52:54:00:a0:e5:1d"
         qemu_e1000_2.cpu_to_pin = 3
 
-        qemu_e1000_best1 = QemuE1000GuestOnly(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm.img",
+        qemu_e1000_best1 = QemuE1000GuestOnly(disk_path=r"../vms/ubuntu.img",
                                               guest_ip="10.10.0.43",
                                               host_ip="10.10.0.44")
-        qemu_e1000_best2 = QemuE1000GuestOnly(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/vm-copy.img",
+        qemu_e1000_best2 = QemuE1000GuestOnly(disk_path=r"../vms/vm-copy.img",
                                               guest_ip="10.10.0.42",
                                               host_ip="10.10.0.44")
         qemu_e1000_best2.vnc_number = 11

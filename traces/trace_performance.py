@@ -315,7 +315,7 @@ class TracePerformance:
 
 
 def create_vm_base():
-    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
     base.bootwait = 30
@@ -326,7 +326,7 @@ def create_vm_base():
 
 
 def create_vm_e1000_base():
-    vm = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    vm = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                      guest_ip="10.10.0.43",
                      host_ip="10.10.0.44")
     vm.bootwait = 30

@@ -5,7 +5,7 @@ from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
 from utils.shell_utils import run_command
 
-Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build/x86_64-softmmu/qemu-system-x86_64" 
+Qemu.QEMU_EXE = r"/usr/lib/qemu" 
 
 
 class MainTest(TestBase):
@@ -49,17 +49,17 @@ class MainTest(TestBase):
             r"/homes/bdaviv/Shared\ VMs/Ubuntu\ Linux\ -\ paravirtual_nic/Ubuntu\ Linux\ -\ paravirtual_nic.vmx",
             "192.168.221.129", "192.168.221.1")
 
-        qemu_virtio = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+        qemu_virtio = Qemu(disk_path=r"../vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
 
-        qemu_e1000 = Qemu(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+        qemu_e1000 = Qemu(disk_path=r"../vms/ubuntu.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
         qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
 
-        qemu_e1000_best = QemuE1000Max(disk_path=r"/home/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+        qemu_e1000_best = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
                                        guest_ip="10.10.0.43",
                                        host_ip="10.10.0.44")
 

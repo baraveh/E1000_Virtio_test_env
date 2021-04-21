@@ -19,7 +19,7 @@ OLD_INITRD = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
 
 
 def create_vms():
-    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
 
@@ -43,7 +43,7 @@ def create_vms():
     virtio_drop.name = "virtio_drop"
     virtio_drop.e1000_options["NG_drop_packet"] = "on"
 
-    e1000_best_3_13 = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_best_3_13 = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                              guest_ip="10.10.0.43",
                              host_ip="10.10.0.44")
     e1000_best_3_13.name = "E1000-best"
@@ -56,7 +56,7 @@ def create_vms():
     e1000_best_interrupt_3_13.e1000_options["NG_interrupt_mul"] = 10
     e1000_best_interrupt_3_13.e1000_options["NG_interrupt_mode"] = 0
 
-    e1000_best_interrupt = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_best_interrupt = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                              guest_ip="10.10.0.43",
                              host_ip="10.10.0.44")
     e1000_best_interrupt.name = "E1000-int_mul"
@@ -90,7 +90,7 @@ def create_vms():
     e1000_timer_itr.name = "E1000-timer_itr"
     # e1000_timer_itr.e1000_options["NG_parabatch"] = "on"
 
-    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    e1000_arthur = QemuE1000Max(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                                 guest_ip="10.10.0.43",
                                 host_ip="10.10.0.44")
     e1000_arthur.kernel = OLD_KERNEL

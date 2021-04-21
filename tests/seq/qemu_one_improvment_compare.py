@@ -23,7 +23,7 @@ BASE_DIR = r"../tmp/results/one_feature/{hostname}".format(
 
 def create_vms():
     vm_list = list()
-    base_machine = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/vm.img",
+    base_machine = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
     e1000_baseline = deepcopy(base_machine)
