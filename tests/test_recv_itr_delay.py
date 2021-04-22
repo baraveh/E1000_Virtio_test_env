@@ -40,7 +40,7 @@ def create_vms():
                                        host_ip="10.10.0.44")
     e1000_best_interrupt.name = "E1000-int_mul"
     e1000_best_interrupt.is_io_thread_nice = False
-    # e1000_best_interrupt.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.14.4/arch/x86/boot/bzImage"
+    # e1000_best_interrupt.kernel = r"../linux/arch/x86/boot/bzImage"
     # e1000_best_interrupt.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.14.4-ng+"
     e1000_best_interrupt.e1000_options["NG_interrupt_mul"] = 10
     e1000_best_interrupt.e1000_options["NG_interrupt_mode"] = 0

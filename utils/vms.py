@@ -98,7 +98,7 @@ class Qemu(VM):
 
         # self.kernel = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
         # self.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.13.9/arch/x86/boot/bzImage"
-        self.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.14.4/arch/x86/boot/bzImage"
+        self.kernel = r"../linux/arch/x86/boot/bzImage"
         # self.initrd = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
         # self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.13.9-ng+"
         self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.14.4-ng+"
