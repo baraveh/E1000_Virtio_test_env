@@ -21,7 +21,7 @@ from os import path
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build/x86_64-softmmu/qemu-system-x86_64"
+Qemu.QEMU_EXE = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
 
 
 class QemuThroughputTest(TestBaseNetperf):

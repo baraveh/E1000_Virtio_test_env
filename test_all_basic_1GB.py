@@ -49,19 +49,19 @@ class MainTest(TestBaseNetperf):
             r"/homes/bdaviv/Shared\ VMs/Ubuntu_Linux-para_1GB/Ubuntu\ Linux\ -\ paravirtual_nic.vmx",
             "192.168.221.129", "192.168.221.1")
 
-        qemu_virtio = Qemu(disk_path=r"../../vms/ubuntu.img",
+        qemu_virtio = Qemu(disk_path=r"../vms/ubuntu.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio.mem = "1024"
 
-        qemu_e1000 = Qemu(disk_path=r"../../vms/ubuntu.img",
+        qemu_e1000 = Qemu(disk_path=r"../vms/ubuntu.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
         qemu_e1000.ethernet_dev = Qemu.QEMU_E1000
         qemu_e1000.mem = "1024"
 
-        qemu_e1000_best = QemuE1000Max(disk_path=r"../../vms/ubuntu.img",
+        qemu_e1000_best = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
                                        guest_ip="10.10.0.43",
                                        host_ip="10.10.0.44")
         qemu_e1000_best.mem = "1024"

@@ -61,7 +61,7 @@ class MainTest(TestBase):
     def get_vms(self):
         vms = []
         for i in range(1, 161, 20):
-            vm = QemuE1000Max(disk_path=r"../../vms/ubuntu.img",
+            vm = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
                                guest_ip="10.10.0.43",
                                host_ip="10.10.0.44")
             vm.qemu_config["tx_packets_per_batch"] = i
