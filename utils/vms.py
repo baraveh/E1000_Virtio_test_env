@@ -99,10 +99,10 @@ class Qemu(VM):
         # self.kernel = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
         # self.kernel = r"/homes/bdaviv/repos/msc-ng/linux-4.13.9/arch/x86/boot/bzImage"
         self.kernel = r"../linux/arch/x86/boot/bzImage"
-        # self.initrd = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
+        # self.initrd = r"../vms/initrd.img"
         # self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.13.9-ng+"
-        self.initrd = r"/homes/bdaviv/repos/msc-ng/vm-files/kernels/initrd.img-4.14.4-ng+"
-        self.kernel_cmdline = r"BOOT_IMAGE=/vmlinuz-3.13.11-ckt22+ root=/dev/mapper/tapuz3--L1--vg-root ro"
+        self.initrd = r"../vms/initrd.img"
+        self.kernel_cmdline = r"BOOT_IMAGE=/vmlinuz-5.8.0-50-generic root=UUID=ffcb4c55-52fc-480c-a824-a002700157b7 ro quiet splash vt.handoff=7"
         self.kernel_cmdline_additional = ""
 
         self.nic_additionals = ""

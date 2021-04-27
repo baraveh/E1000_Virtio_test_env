@@ -5,7 +5,7 @@ from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph
 from utils.shell_utils import run_command, run_command_check
 
-Qemu.QEMU_EXE = r"/usr/lib/qemu"
+Qemu.QEMU_EXE = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
 
 
 class QemuE1000GuestOnly(QemuE1000Max):

@@ -8,7 +8,7 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 from utils.vms import Qemu, QemuE1000Max, QemuE1000NG, QemuLargeRingNG
 
-# ORIG_QEMU = r"/usr/lib/qemu"
+# ORIG_QEMU = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 ORIG_QEMU = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
 ORIG_QEMU_TRACE = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build-trace/x86_64-softmmu/qemu-system-x86_64"
@@ -24,7 +24,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def main(trace=False):
-    vm = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+    vm = QemuE1000NG(disk_path=r"../vms/ubuntu.img",
                      guest_ip="10.10.0.43",
                      host_ip="10.10.0.44")
 

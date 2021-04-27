@@ -35,7 +35,7 @@ def create_vms():
     pairs = list()
     vm_list_e1000 = list()
     vm_list_virtio = list()
-    base_machine = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+    base_machine = QemuNG(disk_path=r"../vms/ubuntu.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
 

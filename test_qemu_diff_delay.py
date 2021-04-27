@@ -7,7 +7,7 @@ from utils.graphs import Graph
 from utils.shell_utils import run_command
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"/usr/lib/qemu"
+Qemu.QEMU_EXE = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 
 

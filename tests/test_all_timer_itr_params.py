@@ -15,11 +15,11 @@ BASE_DIR = r"../tmp/results/test-timer_itr_params/{hostname}".format(
 
 OLD_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-arthur/build/x86_64-softmmu/qemu-system-x86_64"
 OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
-OLD_INITRD = r"/homes/bdaviv/repos/e1000-improv/vms/initrd.img-3.13.11-ckt22+"
+OLD_INITRD = r"../vms/initrd.img"
 
 
 def create_vms():
-    base = QemuNG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+    base = QemuNG(disk_path=r"../vms/ubuntu.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
 
@@ -39,7 +39,7 @@ def create_vms():
     virtio_drop.name = "virtio_drop"
     virtio_drop.e1000_options["NG_drop_packet"] = "on"
 
-    e1000_best_interrupt = QemuE1000NG(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+    e1000_best_interrupt = QemuE1000NG(disk_path=r"../vms/ubuntu.img",
                              guest_ip="10.10.0.43",
                              host_ip="10.10.0.44")
     e1000_best_interrupt.name = "E1000-int_mul"

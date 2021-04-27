@@ -10,7 +10,7 @@ from sensors.netperf import NetPerfLatency
 from utils.machine import localRoot
 from utils.vms import Qemu
 
-ORIG_QEMU = r"/usr/lib/qemu"
+ORIG_QEMU = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 TMP_QEMU = r"/tmp/qemu-system-x86_64"
 Qemu.QEMU_EXE = TMP_QEMU
@@ -34,7 +34,7 @@ def main(directory=None):
 
     shutil.copyfile(ORIG_QEMU, TMP_QEMU)
     os.makedirs(trace_dir, exist_ok=True)
-    vm = Qemu(disk_path=r"/homes/bdaviv/repos/e1000-improv/vms/ubuntu.img",
+    vm = Qemu(disk_path=r"../vms/ubuntu.img",
               guest_ip="10.10.0.43",
               host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO
