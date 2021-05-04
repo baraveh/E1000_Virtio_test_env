@@ -153,12 +153,12 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
         #          )
         #)
 
-        nic_tx_stop_ratio_batch = DummySensor(
-            RatioGraph(nic_tx_stop.graph, batch_count.graph,
-                       "message size", "queue stops per batch",
-                       path.join(self.dir, "throughput-tx_queue_stop-batch")
-                       )
-        )
+        #top_ratio_batch = DummySensor(
+        #    RatioGraph(nic_tx_stop.graph, batch_count.graph,
+        #               "message size", "queue stops per batch",
+        #               path.join(self.dir, "throughput-tx_queue_stop-batch")
+        #               )
+        #)
 
        #tcp_total_msgs = TCPTotalMSgs(
         #    Graph("message size", "num of transmited msgs per second",
@@ -174,12 +174,12 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
         #          )
         #)
 
-        tcp_msgs_ratio = DummySensor(
-            RatioGraph(tcp_first_msgs.graph, tcp_total_msgs.graph,
-                       "message size", "queue stops per batch",
-                       path.join(self.dir, "throughput-tcp_msgs-ratio")
-                       )
-        )
+        #msgs_ratio = DummySensor(
+        #    RatioGraph(tcp_first_msgs.graph, tcp_total_msgs.graph,
+        #               "message size", "queue stops per batch",
+        #               path.join(self.dir, "throughput-tcp_msgs-ratio")
+        #               )
+        #)
         
         cpu_sensors = get_all_cpu_sensors(self.dir, "latency", self.netperf_runtime, exits_graph=kvm_exits.graph)
         cpu_proc_sensors = get_all_proc_cpu_sensors(self.dir, "latency", self.netperf_runtime, exits_graph=kvm_exits.graph)
@@ -208,12 +208,12 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
                 sched_switch,
                 sched_switch_per_batch,
 
-                nic_tx_stop,
-                nic_tx_stop_ratio_batch,
+                #nic_tx_stop,
+                #nic_tx_stop_ratio_batch,
 
-                tcp_total_msgs,
-                tcp_first_msgs,
-                tcp_msgs_ratio,
+                #total_msgs,
+                #tcp_first_msgs,
+                #tcp_msgs_ratio,
                 ] + cpu_sensors + cpu_proc_sensors
 
 
