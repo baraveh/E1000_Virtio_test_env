@@ -128,10 +128,10 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
                   normalize=self.netperf_runtime)
         )
 
-        interrupt_delay = QemuInterruptDelaySensor(
-            Graph("message size", "average interrupt delay",
-                  path.join(self.dir, "latency-interrupt_delay"))
-        )
+        #interrupt_delay = QemuInterruptDelaySensor(
+        #    Graph("message size", "average interrupt delay",
+        #          path.join(self.dir, "latency-interrupt_delay"))
+        #)
 
         sched_switch = SchedSwitchSensor(
             Graph("message size", "num of scheduler switch (per sec)",
@@ -146,12 +146,12 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
                        )
         )
 
-        nic_tx_stop = NicTxStopSensor(
-            Graph("message size", "num of tx queue stops (per sec)",
-                  path.join(self.dir, "latency-tx_queue_stop"),
-                  normalize=self.netperf_runtime
-                  )
-        )
+        #nic_tx_stop = NicTxStopSensor(
+        #    Graph("message size", "num of tx queue stops (per sec)",
+        #          path.join(self.dir, "latency-tx_queue_stop"),
+        #          normalize=self.netperf_runtime
+        #          )
+        #)
 
         nic_tx_stop_ratio_batch = DummySensor(
             RatioGraph(nic_tx_stop.graph, batch_count.graph,
@@ -160,19 +160,19 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
                        )
         )
 
-        tcp_total_msgs = TCPTotalMSgs(
-            Graph("message size", "num of transmited msgs per second",
-                  path.join(self.dir, "throughput-tcp_msgs_total"),
-                  normalize=self.netperf_runtime
-                  )
-        )
+       #tcp_total_msgs = TCPTotalMSgs(
+        #    Graph("message size", "num of transmited msgs per second",
+        #          path.join(self.dir, "throughput-tcp_msgs_total"),
+        #          normalize=self.netperf_runtime
+        #          )
+        #)
 
-        tcp_first_msgs = TCPFirstMSgs(
-            Graph("message size", "num of transmited first msgs per second",
-                  path.join(self.dir, "throughput-tcp_msgs_first"),
-                  normalize=self.netperf_runtime
-                  )
-        )
+        #tcp_first_msgs = TCPFirstMSgs(
+        #    Graph("message size", "num of transmited first msgs per second",
+        #          path.join(self.dir, "throughput-tcp_msgs_first"),
+        #          normalize=self.netperf_runtime
+        #          )
+        #)
 
         tcp_msgs_ratio = DummySensor(
             RatioGraph(tcp_first_msgs.graph, tcp_total_msgs.graph,
