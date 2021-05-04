@@ -44,7 +44,7 @@ def create_vms():
     e1000_para_halt.name = "e1000-parahalt"
 
     regular_vms = [
-        e1000_baseline,
+        # e1000_baseline,
 
         virtio,
         #virtio_batch,
