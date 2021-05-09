@@ -203,7 +203,7 @@ class LatencyTest(test_qemu_throughput.QemuThroughputTest):
 
                 interrupt_ratio,
 
-                interrupt_delay,
+                #interrupt_delay,
 
                 sched_switch,
                 sched_switch_per_batch,
