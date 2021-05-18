@@ -141,9 +141,9 @@ class Qemu(VM):
             info[KERNEL_CMD] = self.kernel_cmdline
 
             info[QEMU_FILE] = self.exe
-            info[QEMU_GIT] = run_command_output("git -C {directory} rev-parse --short HEAD".format(
-                directory=os.path.dirname(self.exe)
-            )).strip()
+            #info[QEMU_GIT] = run_command_output("git -C {directory} rev-parse --short HEAD".format(
+            #    directory=os.path.dirname(self.exe)
+            #)).strip()
 
             info[NIC_TYPE] = self.ethernet_dev
             info[CPU_PIN] = self.cpu_to_pin
