@@ -257,7 +257,7 @@ class Qemu(VM):
                 cmdline_more=kernel_command_line
             )
 
-        qemu_command = "taskset -c {cpu} numactl -m 0 {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
+        qemu_command = "sudo taskset -c {cpu} numactl -m 0 {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
                        "{kernel_additions} " \
                        "{qemu_additionals} " \
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
@@ -291,7 +291,7 @@ class Qemu(VM):
             self.change_qemu_parameters()
         sleep(0.5)
         if self.io_thread_cpu:
-            command = "taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
+            command = "sudo taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
         if self.is_io_thread_nice:
             self.set_iothread_nice()

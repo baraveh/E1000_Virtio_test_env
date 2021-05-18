@@ -12,9 +12,9 @@ from utils.machine import localRoot
 from utils.shell_utils import run_command_async
 from utils.vms import Qemu, QemuE1000Max, QemuE1000NG, QemuLargeRingNG
 
-# ORIG_QEMU = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
+# ORIG_QEMU = r"qemu-system-x86_64"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
-ORIG_QEMU = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
+ORIG_QEMU = r"qemu-system-x86_64"
 # ORIG_QEMU = r"/homes/bdaviv/repos/msc-ng/qemu-ng/build-debug/x86_64-softmmu/qemu-system-x86_64"
 TMP_QEMU = r"/tmp/qemu/x86_64-softmmu/qemu-system-x86_64"
 TMP_QEMU = ORIG_QEMU

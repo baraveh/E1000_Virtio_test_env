@@ -41,7 +41,7 @@ class Trace:
             redirect=[">", ">>"][append]
         )
         if cpu is not None:
-            command = "taskset -c {} bash -c \"{}\"".format(cpu, command)
+            command = "sudo taskset -c {} bash -c \"{}\"".format(cpu, command)
         self.target.remote_command(command)
 
     def read_value(self, key, **kargs):

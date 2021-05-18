@@ -11,7 +11,7 @@ NETPERF_CORE = 3
 
 
 def netserver_start(core=NETPERF_CORE, nice=0):
-    run_command("sudo taskset -c {} nice -n {} netserver".format(core, nice))
+    run_command("sudo sudo taskset -c {} nice -n {} netserver".format(core, nice))
 
 
 def netserver_stop():
