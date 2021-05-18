@@ -46,18 +46,18 @@ class QemuNiceTest(QemuThroughputTest):
         self.netperf.run_netperf(vm, vm_name, x_value, msg_size=self.msg_size)
 
     def get_vms(self):
-        qemu_virtio = Qemu(disk_path=r"../vms/ubuntu.img",
+        qemu_virtio = Qemu(disk_path=r"../vms/ubuntu-20.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
 
-        qemu_e1000_arthur = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
+        qemu_e1000_arthur = QemuE1000Max(disk_path=r"../vms/ubuntu-20.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
-        qemu_large_queue = QemuLargeRing(disk_path=r"../vms/ubuntu.img",
+        qemu_large_queue = QemuLargeRing(disk_path=r"../vms/ubuntu-20.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
-        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"../vms/ubuntu.img",
+        qemu_large_queue_batch_itr = QemuLargeRing(disk_path=r"../vms/ubuntu-20.img",
                                                    guest_ip="10.10.0.43",
                                                    host_ip="10.10.0.44")
         qemu_large_queue_batch_itr.is_io_thread_nice = True

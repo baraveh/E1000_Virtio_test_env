@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def create_vm_base():
-    base = QemuNG(disk_path=r"../vms/ubuntu.img",
+    base = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
     base.bootwait = 10
@@ -38,7 +38,7 @@ def create_vm_base():
 
 
 def create_vm_e1000_base():
-    vm = QemuE1000NG(disk_path=r"../vms/ubuntu.img",
+    vm = QemuE1000NG(disk_path=r"../vms/ubuntu-20.img",
                      guest_ip="10.10.0.43",
                      host_ip="10.10.0.44")
     vm.bootwait = 10
@@ -117,7 +117,7 @@ def main(directory=None):
     os.makedirs(trace_dir, exist_ok=True)
 
     netserver_start()
-    # vm = QemuE1000NG(disk_path=r"../vms/ubuntu.img",
+    # vm = QemuE1000NG(disk_path=r"../vms/ubuntu-20.img",
     #                  guest_ip="10.10.0.43",
     #                  host_ip="10.10.0.44")
     # vm.netperf_test_params = "-C"

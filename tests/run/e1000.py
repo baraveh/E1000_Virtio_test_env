@@ -24,7 +24,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def main(trace=False):
-    vm = QemuE1000NG(disk_path=r"../vms/ubuntu.img",
+    vm = QemuE1000NG(disk_path=r"../vms/ubuntu-20.img",
                      guest_ip="10.10.0.43",
                      host_ip="10.10.0.44")
 

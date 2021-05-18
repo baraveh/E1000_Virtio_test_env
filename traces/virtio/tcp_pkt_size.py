@@ -47,7 +47,7 @@ def main(directory=None, netperf_msg_size=None):
     netserver_start()
     logger.info("msg size = %s", netperf_msg_size)
 
-    vm = QemuNG(disk_path=r"../vms/ubuntu.img",
+    vm = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                 guest_ip="10.10.0.43",
                 host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO

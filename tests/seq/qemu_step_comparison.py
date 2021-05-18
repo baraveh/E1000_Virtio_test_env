@@ -19,7 +19,7 @@ from test_qemu_throughput import QemuThroughputTest, TestCmpThroughputTSO
 
 RUNTIME = 15
 RETRIES = 3
-BASE_DIR = r"/home-local/bdaviv/tmp/results/step-compare/{hostname}".format(
+BASE_DIR = r"../tmp/results/step-compare/{hostname}".format(
     hostname=gethostname()
 )
 
@@ -35,7 +35,7 @@ def create_vms():
     pairs = list()
     vm_list_e1000 = list()
     vm_list_virtio = list()
-    base_machine = QemuNG(disk_path=r"../vms/ubuntu.img",
+    base_machine = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
 

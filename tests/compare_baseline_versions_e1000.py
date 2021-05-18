@@ -20,7 +20,7 @@ def create_vms():
     OLD_INITRD = r"../vms/initrd.img"
 
     QEMU_MIX = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
-    base_machine = QemuNG(disk_path=r"../vms/ubuntu.img",
+    base_machine = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
     base_machine.ethernet_dev = base_machine.QEMU_E1000

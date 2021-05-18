@@ -133,28 +133,28 @@ class QemuTest(TestBase):
 
     def get_vms(self):
         # ***********************
-        qemu_virtio = Qemu(disk_path=r"../vms/ubuntu.img",
+        qemu_virtio = Qemu(disk_path=r"../vms/ubuntu-20.img",
                            guest_ip="10.10.0.43",
                            host_ip="10.10.0.44")
         qemu_virtio.ethernet_dev = Qemu.QEMU_VIRTIO
         # ***********************
-        qemu_virtio_latency = Qemu(disk_path=r"../vms/ubuntu.img",
+        qemu_virtio_latency = Qemu(disk_path=r"../vms/ubuntu-20.img",
                                    guest_ip="10.10.0.43",
                                    host_ip="10.10.0.44")
         qemu_virtio_latency.ethernet_dev = Qemu.QEMU_VIRTIO
         qemu_virtio_latency.qemu_config["latency_itr"] = 2
         # ***********************
-        qemu_e1000_baseline = Qemu(disk_path=r"../vms/ubuntu.img",
+        qemu_e1000_baseline = Qemu(disk_path=r"../vms/ubuntu-20.img",
                                    guest_ip="10.10.0.43",
                                    host_ip="10.10.0.44")
         qemu_e1000_baseline.ethernet_dev = Qemu.QEMU_E1000
         # ***********************
-        qemu_e1000_arthur = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
+        qemu_e1000_arthur = QemuE1000Max(disk_path=r"../vms/ubuntu-20.img",
                                          guest_ip="10.10.0.43",
                                          host_ip="10.10.0.44")
         qemu_e1000_arthur.qemu_config["latency_itr"] = 0
         # ***********************
-        qemu_smart_itr3 = QemuE1000Max(disk_path=r"../vms/ubuntu.img",
+        qemu_smart_itr3 = QemuE1000Max(disk_path=r"../vms/ubuntu-20.img",
                                        guest_ip="10.10.0.43",
                                        host_ip="10.10.0.44")
         qemu_smart_itr3.qemu_config["latency_itr"] = 2

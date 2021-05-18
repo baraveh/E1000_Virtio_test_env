@@ -17,7 +17,7 @@ RETRIES = 1
 BASE_DIR = r"../tmp/results/test-results"
 
 def create_vms():
-    base = QemuNG(disk_path=r"../vms/ubuntu.img",
+    base = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                   guest_ip="10.10.0.43",
                   host_ip="10.10.0.44")
 

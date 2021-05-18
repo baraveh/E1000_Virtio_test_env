@@ -18,7 +18,7 @@ def create_vms():
     OLD_QEMU = r"../qemu/build/x86_64-softmmu/qemu-system-x86_64"
     OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
     OLD_INITRD = r"../vms/initrd.img"
-    base_machine = QemuNG(disk_path=r"../vms/ubuntu.img",
+    base_machine = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
     base_machine.ethernet_dev = base_machine.QEMU_VIRTIO

@@ -34,7 +34,7 @@ def main(directory=None):
 
     shutil.copyfile(ORIG_QEMU, TMP_QEMU)
     os.makedirs(trace_dir, exist_ok=True)
-    vm = Qemu(disk_path=r"../vms/ubuntu.img",
+    vm = Qemu(disk_path=r"../vms/ubuntu-20.img",
               guest_ip="10.10.0.43",
               host_ip="10.10.0.44")
     vm.ethernet_dev = Qemu.QEMU_VIRTIO

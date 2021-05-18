@@ -16,7 +16,7 @@ BASE_DIR = r"../tmp/results/one_feature+iothread-graph"
 
 def create_vms():
     vm_list = list()
-    base_machine = QemuNG(disk_path=r"../vms/ubuntu.img",
+    base_machine = QemuNG(disk_path=r"../vms/ubuntu-20.img",
                           guest_ip="10.10.0.43",
                           host_ip="10.10.0.44")
     e1000_baseline = deepcopy(base_machine)
