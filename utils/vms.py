@@ -46,7 +46,7 @@ class VM(Machine):
             self.remote_command(cmd)
 
     def shutdown(self):
-        self.remote_command("poweroff")
+        self.remote_root_command("poweroff")
         sleep(self.POWEROFF_WAIT)
 
     def run(self, configure_guest=True):
@@ -288,10 +288,10 @@ class Qemu(VM):
             
         )
         run_command_async(qemu_command)
-        sleep(10)
+        sleep(1)
         if self.qemu_config:
             self.change_qemu_parameters()
-        sleep(10)
+        sleep(1)
         if self.io_thread_cpu:
             command = "sudo taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
