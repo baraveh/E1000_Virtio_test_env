@@ -257,7 +257,7 @@ class Qemu(VM):
                 cmdline_more=kernel_command_line
             )
 
-        qemu_command = "taskset -a -c {cpu} numactl -m 0 {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
+        qemu_command = "sudo taskset -c {cpu} numactl -m 0 {qemu_exe} -enable-kvm {sidecore} -k en-us -m {mem} " \
                        "{kernel_additions} " \
                        "{qemu_additionals} " \
                        "-drive file='{disk}',if=none,id=drive-virtio-disk0,format=qcow2 " \
