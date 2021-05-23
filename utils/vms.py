@@ -286,10 +286,10 @@ class Qemu(VM):
             # "-pidfile {pidfile} " \
         )
         run_command_async(qemu_command)
-        sleep(0.5)
+        sleep(10)
         if self.qemu_config:
             self.change_qemu_parameters()
-        sleep(0.5)
+        sleep(10)
         if self.io_thread_cpu:
             command = "sudo taskset -p -c {} {}".format(self.io_thread_cpu, self.get_pid())
             run_command_check(command)
