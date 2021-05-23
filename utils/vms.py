@@ -46,7 +46,7 @@ class VM(Machine):
             self.remote_command(cmd)
 
     def shutdown(self):
-        self.remote_root_command("poweroff")
+        self.remote_command("poweroff")
         sleep(self.POWEROFF_WAIT)
 
     def run(self, configure_guest=True):
