@@ -265,6 +265,7 @@ class Qemu(VM):
                        "-netdev tap,ifname={tap},id=net0,script=no{vhost} " \
                        "-object iothread,id=iothread0 " \
                        "-device {dev_type},netdev=net0,mac={mac}{nic_additionals} " \
+                       "-pidfile {pidfile} " \
                        "-vnc :{vnc} " \
                        "-monitor tcp:127.0.0.1:1234,server,nowait,nodelay " \
                        "-qmp tcp:127.0.0.1:1235,server,nowait,nodelay " \
@@ -283,7 +284,7 @@ class Qemu(VM):
             pidfile=self.pidfile.name,
             vnc=self.vnc_number,
             mem=self.mem,
-            # "-pidfile {pidfile} " \
+            
         )
         run_command_async(qemu_command)
         sleep(10)
