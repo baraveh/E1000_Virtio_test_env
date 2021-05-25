@@ -191,6 +191,7 @@ class Qemu(VM):
         run_command("sudo modprobe -r kvm-intel")
 
     def _clean_cpu(self):
+        return
         run_command("echo 0 |sudo tee /sys/devices/system/cpu/cpu{cpu}/online".format(
             cpu=self.cpu_to_pin
         ), shell=True)
