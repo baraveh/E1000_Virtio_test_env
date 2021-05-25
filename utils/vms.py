@@ -266,6 +266,7 @@ class Qemu(VM):
                        "-object iothread,id=iothread0 " \
                        "-device {dev_type},netdev=net0,mac={mac}{nic_additionals} " \
                        "-vnc :{vnc} " \
+                       "-pidfile {pidfile} " \
                        "-monitor tcp:127.0.0.1:1234,server,nowait,nodelay " \
                        "-qmp tcp:127.0.0.1:1235,server,nowait,nodelay " \
                        "".format(  # -monitor tcp:1234,server,nowait,nodelay
