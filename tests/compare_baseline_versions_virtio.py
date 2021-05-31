@@ -15,7 +15,7 @@ BASE_DIR = r"../tmp/results/virtio_baseline"
 
 
 def create_vms():
-    OLD_QEMU = r"qemu-system-x86_64"
+    OLD_QEMU = r"../qemu/build/qemu-system-x86_64"
     OLD_KERNEL = r"/home/bdaviv/repos/e1000-improv/linux-3.13.0/arch/x86/boot/bzImage"
     OLD_INITRD = r"../vms/initrd.img"
     base_machine = QemuNG(disk_path=r"../vms/ubuntu-20.img",

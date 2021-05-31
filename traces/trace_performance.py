@@ -26,7 +26,7 @@ from sensors.netperf import NetPerfLatency, NetPerfTCP, netserver_start, netserv
 from utils.machine import localRoot
 from utils.vms import Qemu, QemuE1000Max, QemuE1000NG, QemuLargeRingNG, VM, QemuNG
 
-ORIG_QEMU = r"qemu-system-x86_64"
+ORIG_QEMU = r"../qemu/build/qemu-system-x86_64"
 
 # TMP_QEMU = r"/tmp/qemu/x86_64-softmmu/qemu-system-x86_64"
 TMP_QEMU = ORIG_QEMU

@@ -13,7 +13,7 @@ from utils.graphs import Graph, GraphErrorBarsGnuplot, RatioGraph
 from os import path
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build_normal/x86_64-softmmu/qemu-system-x86_64"
-Qemu.QEMU_EXE = r"qemu-system-x86_64"
+Qemu.QEMU_EXE = r"../qemu/build/qemu-system-x86_64"
 
 
 # Qemu.QEMU_EXE = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"

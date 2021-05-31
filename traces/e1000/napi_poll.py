@@ -10,7 +10,7 @@ from sensors.netperf import NetPerfLatency, NetPerfTCP
 from utils.machine import localRoot
 from utils.vms import Qemu, QemuE1000Max
 
-ORIG_QEMU = r"qemu-system-x86_64"
+ORIG_QEMU = r"../qemu/build/qemu-system-x86_64"
 # ORIG_QEMU = r"/home/bdaviv/repos/e1000-improv/qemu-2.2.0/build-trace/x86_64-softmmu/qemu-system-x86_64"
 TMP_QEMU = r"/tmp/qemu-system-x86_64"
 Qemu.QEMU_EXE = TMP_QEMU

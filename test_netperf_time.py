@@ -7,7 +7,7 @@ from sensors.netperf import NetPerfTCP
 from utils.graphs import Graph, GraphErrorBars
 from utils.shell_utils import run_command
 
-Qemu.QEMU_EXE = r"qemu-system-x86_64"
+Qemu.QEMU_EXE = r"../qemu/build/qemu-system-x86_64"
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
